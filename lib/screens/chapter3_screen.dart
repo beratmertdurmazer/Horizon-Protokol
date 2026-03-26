@@ -31,7 +31,7 @@ class _Chapter3ScreenState extends State<Chapter3Screen> with TickerProviderStat
   bool _isCompleted = false;
   bool _isTransitioning = false;
 
-  // Telemetry Variables (V2 Assessment)
+  // Telemetry Variables (V3 Assessment)
   int _distractionClicks = 0;
   int _gameClicks = 0;
   final Map<Key, DateTime> _popupSpawnTimes = {};
@@ -39,7 +39,14 @@ class _Chapter3ScreenState extends State<Chapter3Screen> with TickerProviderStat
   int _readingParalysisCount = 0;
   int _spamClicks = 0;
   int _matchErrors = 0;
+  int _actualMemoryErrors = 0; // NEW: Memory fail on seen items
+  final Set<int> _seenIndices = {}; // NEW: Track exploration
+  final List<int> _recoveryTimes = []; // NEW: Recovery agile tracking
+  int? _seenIndicesAtMove8; // NEW: Strategic mapping snapshot
+  
   DateTime? _lastTileClickTime;
+  DateTime? _lastPopupClosedTime;
+  int _maxRecoveryTimeMs = 0;
 
   @override
   void initState() {
@@ -117,12 +124,13 @@ class _Chapter3ScreenState extends State<Chapter3Screen> with TickerProviderStat
 
     return GestureDetector(
       onTap: () {
-        // V2 Telemetry Analizi
+        // V3 Telemetry Analizi
         if (_popupSpawnTimes.containsKey(key)) {
           int reactionTime = DateTime.now().difference(_popupSpawnTimes[key]!).inMilliseconds;
-          if (reactionTime < 500) _immediateDismissals++; // Dürtüsel yangın söndürme
-          if (reactionTime > 3000) _readingParalysisCount++; // Odak erozyonu / Okuya dalma
+          if (reactionTime < 500) _immediateDismissals++; // Dürtüsel
+          if (reactionTime > 3000) _readingParalysisCount++; // Odak erozyonu
           PersonaMR().recordInteraction("Bölüm 3: Parazitler", "POPUP_CLOSED", metadata: {"reactionTime": reactionTime});
+          _lastPopupClosedTime = DateTime.now();
         }
 
         setState(() => _distractionClicks++);
@@ -177,14 +185,26 @@ class _Chapter3ScreenState extends State<Chapter3Screen> with TickerProviderStat
   void _onTileTap(int index) {
     if (_isCompleted || _isProcessing || _isRevealed[index] || _isMatched[index]) return;
 
-    // V2 Telemetry (Spam Clik / Panic Click Detection)
+    // V3 Telemetry (Spam / Recovery / Memory tracking)
     DateTime now = DateTime.now();
     if (_lastTileClickTime != null && now.difference(_lastTileClickTime!).inMilliseconds < 300) {
-      _spamClicks++; // Panik halinde çoklu ve hızlı tıklama tespit edildi
+      _spamClicks++; 
+    }
+    if (_lastPopupClosedTime != null) {
+      int recoveryTime = now.difference(_lastPopupClosedTime!).inMilliseconds;
+      _recoveryTimes.add(recoveryTime); // For avg calculation
+      if (recoveryTime > _maxRecoveryTimeMs) _maxRecoveryTimeMs = recoveryTime;
+      _lastPopupClosedTime = null;
     }
     _lastTileClickTime = now;
 
     _gameClicks++;
+    
+    // Snap seenIndices for Metodik Analysis at move 8
+    if (_gameClicks == 8) {
+      _seenIndicesAtMove8 = _seenIndices.length;
+    }
+
     setState(() {
       _isRevealed[index] = true;
       AudioService().playTypingBeep();
@@ -200,13 +220,28 @@ class _Chapter3ScreenState extends State<Chapter3Screen> with TickerProviderStat
         _matchesFound++;
         _isMatched[_firstSelectedIndex!] = true;
         _isMatched[index] = true;
+        
+        // Mark as seen
+        _seenIndices.add(_firstSelectedIndex!);
+        _seenIndices.add(index);
+        
         PersonaMR().recordInteraction("Bölüm 3: Parazitler", "MATCH_FOUND", metadata: {"symbol": _symbols[index]});
         _firstSelectedIndex = null;
         _isProcessing = false;
         if (_matchesFound == 8) _completeChapter();
       } else {
-        // NO MATCH
+        // NO MATCH (Potential Actual Memory Error)
         _matchErrors++;
+        
+        // IF we've seen at least one of these before and it's not a match, it's a Memory Fail
+        if (_seenIndices.contains(_firstSelectedIndex!) || _seenIndices.contains(index)) {
+          _actualMemoryErrors++;
+        }
+        
+        // Add to seen indices after reveal
+        _seenIndices.add(_firstSelectedIndex!);
+        _seenIndices.add(index);
+
         PersonaMR().recordInteraction("Bölüm 3: Parazitler", "MATCH_FAIL", metadata: {"s1": _symbols[_firstSelectedIndex!], "s2": _symbols[index]});
         Timer(const Duration(milliseconds: 600), () {
           setState(() {
@@ -224,16 +259,22 @@ class _Chapter3ScreenState extends State<Chapter3Screen> with TickerProviderStat
     _isCompleted = true;
     _stopwatch.stop();
     final decisionTime = _stopwatch.elapsedMilliseconds;
+    
+    double avgRecovery = _recoveryTimes.isEmpty 
+        ? 0 
+        : _recoveryTimes.reduce((a, b) => a + b) / _recoveryTimes.length;
+
     List<String> collectedTriggers = [
       "distraction_clicks_$_distractionClicks",
       "game_clicks_$_gameClicks",
       "focus_ratio_${_gameClicks / (_gameClicks + _distractionClicks + 1)}"
     ];
 
-    // V2 Psikolojik Sinyaller (AssessmentEngine'e gönderilir)
-    if (_immediateDismissals > 2) collectedTriggers.add("immediate_dismissal");
-    if (_readingParalysisCount > 1) collectedTriggers.add("reading_paralysis");
-    if (_spamClicks > 3) collectedTriggers.add("spam_clicks");
+    // V3 Analitik Sinyaller
+    if (_immediateDismissals > 5) collectedTriggers.add("immediate_dismissal");
+    if (_readingParalysisCount > 3) collectedTriggers.add("reading_paralysis");
+    if (_actualMemoryErrors > 6) collectedTriggers.add("heavy_memory_fail");
+    if (avgRecovery > 2500) collectedTriggers.add("slow_recovery");
 
     PersonaMR().logDecision(
       moduleId: "MOD_1",
@@ -249,6 +290,11 @@ class _Chapter3ScreenState extends State<Chapter3Screen> with TickerProviderStat
       additionalData: {
         "missedPopups": _popups.length,
         "symbolMatchErrors": _matchErrors,
+        "actualMemoryErrors": _actualMemoryErrors,
+        "seenIndicesCount_8": _seenIndicesAtMove8 ?? _seenIndices.length,
+        "avgRecoveryTimeMs": avgRecovery.toInt(),
+        "immediateDismissals": _immediateDismissals,
+        "readingParalysisCount": _readingParalysisCount,
       },
     );
 

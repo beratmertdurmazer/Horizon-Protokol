@@ -68,31 +68,31 @@ class _Chapter13ScreenState extends State<Chapter13Screen> {
     super.dispose();
   }
 
-  void _makeFinalChoice(bool delegate) {
+  void _makeFinalChoice(String style) {
     if (_isTransitioning) return;
 
     setState(() => _isTransitioning = true);
-    PersonaMR().recordInteraction("Bölüm 13: Güven Testi", "FINAL_DECISION", metadata: {"delegate": delegate});
+    PersonaMR().recordInteraction("Bölüm 13: Güven Testi", "FINAL_DECISION", metadata: {"choiceId": style});
     AudioService().playMetalClunk();
 
     final totalTime = _stopwatch.elapsedMilliseconds;
     
-    // Asenkron loglama ve finalizasyon
+    // Async logging and finalization
     () async {
       await PersonaMR().logDecision(
         moduleId: "MOD_3",
         chapterId: "Bölüm 13: Güven Testi",
-        choiceId: delegate ? "DELEGATE_TRUST" : "SELF_RELIANCE_CONTROL",
+        choiceId: style,
         durationMs: totalTime,
-        triggers: [delegate ? "high_trust_delegation" : "low_trust_micro_management", "module_3_final"],
+        triggers: [style.toLowerCase(), "module_3_final"],
       );
 
       await PersonaMR().logChapterMetrics(
         chapterId: "Bölüm 13: Güven Testi",
         totalTimeMs: totalTime,
         additionalData: {
-          "delegationRatio": delegate ? 1.0 : 0.0,
-          "finalDecision": delegate ? "delegate" : "self",
+          "delegationRatio": style == "DELEGATE" ? 1.0 : 0.0,
+          "finalDecision": style.toLowerCase(),
           "readDuration": (totalTime - (_dialogueFinishTime ?? totalTime)).clamp(0, totalTime),
         },
       );
@@ -117,12 +117,12 @@ class _Chapter13ScreenState extends State<Chapter13Screen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Background - Vent / Server Room (Dynamic)
+          // Background - Dark Tunnel (0.95 dark as requested)
           Positioned.fill(
             child: Image.asset(
-              _partnerName == "KAEL" ? "assets/images/chapter13_kael.png" : "assets/images/chapter11_elara.png", // Use C11 Elara until C13 Elara is ready
+              _partnerName == "KAEL" ? "assets/images/chapter13_kael.png" : "assets/images/chapter11_elara.png",
               fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.85),
+              color: Colors.black.withOpacity(0.95),
               colorBlendMode: BlendMode.darken,
             ),
           ),
@@ -195,38 +195,40 @@ class _Chapter13ScreenState extends State<Chapter13Screen> {
       children: [
         _buildDecisionTile(
           "\"SANA GÜVENİYORUM. TÜNELE GİR, BEN SENİ YÖNLENDİRECEĞİM.\"",
-          "Delegasyon ve Ekip Güveni",
-          () => _makeFinalChoice(true),
-          AppTheme.neonCyan,
+          () => _makeFinalChoice("DELEGATE"),
+          AppTheme.neonCyan, // UI: Blue
         ),
         const SizedBox(height: 16),
         _buildDecisionTile(
           "\"SEN BURADA DUR. TÜNELİ BEN DAHA İYİ BİLİYORUM, BEN GİDERİM.\"",
-          "Mikro-Yönetim ve Risk Kaçınma",
-          () => _makeFinalChoice(false),
-          Colors.orangeAccent,
+          () => _makeFinalChoice("SELF"),
+          Colors.orangeAccent, // UI: Orange
+        ),
+        const SizedBox(height: 16),
+        _buildDecisionTile(
+          "\"DEMİN NE YAPTIĞINI GÖRDÜK. BU RİSKİ ALAMAM, TÜNELE BEN GİRECEĞİM.\"",
+          () => _makeFinalChoice("DISTRUST"),
+          Colors.redAccent, // UI: Red
         ),
       ],
     );
   }
 
-  Widget _buildDecisionTile(String label, String reason, VoidCallback onTap, Color color) {
+  Widget _buildDecisionTile(String label, VoidCallback onTap, Color color) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
           color: color.withOpacity(0.05),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withOpacity(0.35)),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
-          children: [
-            Text(label, textAlign: TextAlign.center, style: GoogleFonts.rajdhani(color: color, fontSize: 15, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 5),
-            Text(reason.toUpperCase(), style: GoogleFonts.sourceCodePro(color: color.withOpacity(0.6), fontSize: 9, letterSpacing: 1)),
-          ],
+        child: Text(
+          label, 
+          textAlign: TextAlign.center, 
+          style: GoogleFonts.rajdhani(color: color, fontSize: 15, fontWeight: FontWeight.bold)
         ),
       ),
     );

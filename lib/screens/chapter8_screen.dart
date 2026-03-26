@@ -48,7 +48,7 @@ class _Chapter8ScreenState extends State<Chapter8Screen> with TickerProviderStat
       setState(() {
         _secondsRemaining--;
         if (_secondsRemaining <= 0) {
-          _endChapter("VACUUM_COLLAPSE_TIMEOUT");
+          _endChapter("TIMEOUT");
         }
       });
     });
@@ -94,7 +94,8 @@ class _Chapter8ScreenState extends State<Chapter8Screen> with TickerProviderStat
       chapterId: "Bölüm 8: Dış Gövde Çatlağı",
       totalTimeMs: totalTime,
       additionalData: {
-        "reactionTime": totalTime, // In this case, total chapter time IS the reaction time to the single event
+        "reactionTimeMs": totalTime,
+        "finalResult": choice,
       },
     );
 
@@ -108,19 +109,19 @@ class _Chapter8ScreenState extends State<Chapter8Screen> with TickerProviderStat
     Color color = Colors.white;
 
     switch (result) {
-      case "LOGIC_OXYGEN_MASK":
+      case "OXYGEN_MASK":
         title = "GÜVENLİ PROTOKOL";
         desc = "Önce can güvenliğini sağladın. Oksijen maskesi ile sızıntıya müdahale şansın arttı.";
         icon = Icons.air_outlined;
         color = AppTheme.neonCyan;
         break;
-      case "IMPULSIVE_BREACH_RUN":
-        title = "RİSKLİ MÜDAHALE";
-        desc = "Korunmasızca sızıntıya koştun. Cesur ama dağınık bir karar verdin.";
-        icon = Icons.run_circle_outlined;
-        color = Colors.orange;
+      case "BREACH_AREA":
+        title = "GÖRÜŞ KAYBI / BİLİNÇ SİLİNDİRİ";
+        desc = "Korunmasızca sızıntıya koştun. Oksijensizlikten ciğerlerin yanıyor ve görüşün kararıyor. (Kalıcı Bilişsel Hasar Riski)";
+        icon = Icons.visibility_off;
+        color = Colors.red;
         break;
-      case "VACUUM_COLLAPSE_TIMEOUT":
+      case "TIMEOUT":
         title = "KRİTİK HATA";
         desc = "Karar veremedin. Basınç kaybı istasyonu boşluğa sürükledi.";
         icon = Icons.error_outline;
@@ -284,7 +285,7 @@ class _Chapter8ScreenState extends State<Chapter8Screen> with TickerProviderStat
             "BÖLME 12-A / LOJİSTİK",
             Icons.masks,
             AppTheme.neonCyan,
-            () => _handleDecision("LOGIC_OXYGEN_MASK"),
+            () => _handleDecision("OXYGEN_MASK"),
           ),
         ),
         const SizedBox(width: 20),
@@ -294,7 +295,7 @@ class _Chapter8ScreenState extends State<Chapter8Screen> with TickerProviderStat
             "BÖLME 04-F / DIŞ GÖVDE",
             Icons.warning_amber,
             Colors.orange,
-            () => _handleDecision("IMPULSIVE_BREACH_RUN"),
+            () => _handleDecision("BREACH_AREA"),
           ),
         ),
       ],

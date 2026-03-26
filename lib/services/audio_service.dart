@@ -369,6 +369,39 @@ class AudioService {
     } catch (e) {}
   }
 
+  void playTick() {
+    try {
+      final ctx = _getContext();
+      final osc = ctx.createOscillator();
+      final g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1400, ctx.currentTime);
+      g.gain.setValueAtTime(0.02, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    } catch (e) {}
+  }
+
+  void playPowerDown() {
+    try {
+      final ctx = _getContext();
+      final osc = ctx.createOscillator();
+      final g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(10, ctx.currentTime + 0.8);
+      g.gain.setValueAtTime(0.1, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.8);
+    } catch (e) {}
+  }
+
   void stopAll() {
     try { _ambientOsc?.stop(); _ambientOsc = null; } catch (e) {}
     try { _sirenOsc?.stop(); _sirenOsc = null; } catch (e) {}

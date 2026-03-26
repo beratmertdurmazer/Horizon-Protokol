@@ -209,6 +209,11 @@ class _Chapter2ScreenState extends State<Chapter2Screen> with TickerProviderStat
           "reactor": (_reactorHealth * 100).toInt(),
           "oxygen": (_oxygenLevel * 100).toInt(),
           "comms": (_commsSignal * 100).toInt(),
+        },
+        "timeSpent": {
+          "reactor": _timeSpent[TriageSystem.reactor]?.toInt() ?? 0,
+          "oxygen": _timeSpent[TriageSystem.oxygen]?.toInt() ?? 0,
+          "comms": _timeSpent[TriageSystem.comms]?.toInt() ?? 0,
         }
       }
     );

@@ -1,4 +1,8 @@
 # 🧬 HORIZON PROTOCOL: Klinik İK Değerlendirme & Analiz Kılavuzu
+
+> [!NOTE]
+> **V2 REKTİFİKASYON NOTU:** Bu belgedeki tüm metrikler (Baseline süre deltaları, Triage %'lik odaklanma oranları, Task-Recovery hesaplamaları, fedakarlık handikapları ve yetki devri derinliği), İK felsefesine %100 uyumlu olacak şekilde koda entegre edilmiştir. Kılavuz, oyun motoru (AssessmentEngine) ile tamamen senkrondur.
+
 > [!IMPORTANT]
 > **PERFORMANS FELSEFESİ (KPI):** 
 > Bölüm 1, 3 ve 5 gibi 'yol bulma' ve 'operasyonel' bölümlerde **MİNİMUM SÜRE** ana başarı kıstasıdır. Bu bölümlerdeki hız, bilişsel çevikliği ve odaklanma kalitesini temsil eder.  
@@ -24,8 +28,8 @@ Bu rapor, Horizon Protocol simülasyonunun arka planında çalışan **Klinik An
 | 🧮 Toplanan Veriler (Log) | 🎯 Psikolojik ve İK Çıkarımı | ⚙️ Analiz Motoru Puanlaması |
 | :--- | :--- | :--- |
 | **`errorCount`** (Hatalı Şifre) | Dürtüsellik ve Deneme/Yanılma | >3 hata: **-15 Stres Skoru**, *"Dürtüsel Karar Alma"* riski ataması. |
-| **`durationMs`** (Çözüm Süresi) | Bilgi İşleme Hızı | Hızlı (0-5sn): **+15 Odak Skoru**, Yavaş (>15sn): **-10 Odak Skoru**. |
-| **`timeToFirstClick`** | Analitik İnisiyatif | İlk tıklama çok gecikirse *"Analitik Paralizi"* ihtimali listeye eklenir. |
+| **`durationMs`** (Çözüm Süresi) | Stres Toleransı (Delta) | Süre, adayın olağan diyalog okuma hızı (Baseline) ile kıyaslanarak hesaplanır. Sapma yüksekse eksi puan alır. |
+| **`timeToFirstClick`** | Analitik İnisiyatif | Mutlak gecikme yerine Baseline Delta'ya bakılarak *"Analitik Paralizi"* ihtimali kesinleştirilir. |
 
 ---
 
@@ -40,9 +44,9 @@ Bu rapor, Horizon Protocol simülasyonunun arka planında çalışan **Klinik An
 | 🧮 Toplanan Veriler (Log) | 🎯 Psikolojik ve İK Çıkarımı | ⚙️ Analiz Motoru Puanlaması |
 | :--- | :--- | :--- |
 | **`focus_order`** (Tıklama Sırası) | Önceliklendirme Hiyerarşisi | İlk odaklanılan sistem, adayın bilinçaltındaki "en kritik" risk algısını gösterir. |
+| **`timeSpent`** (Odakta Kalma %) | Mükemmeliyetçilik vs Strateji | Her panele %30-%35 bandında eşit zaman ayıran aday *"Yüksek Operasyonel Titizlik (Mükemmeliyetçilik)"* rozeti alır. |
 | **`switch_count`** (Odak Değişimi) | Karar Verme Kararsızlığı | >12 switch: **-20 Tutarlılık**, *"Aşırı Flickering / Kararsızlık"* bayrağı tetiklenir. |
-| **`final_levels`** (Bakiye Durumu) | Operasyonel Titizlik | Tüm sistemler >%65: *"Yüksek Operasyonel Titizlik (Mükemmeliyetçilik)"* rozeti. |
-| **`choiceId`** (Genel Tercih) | Stratejik Fokus | Reaktör ihmal edilip ( <30) İletişime ( >70) odaklanılırsa: *"Stratejik Önceliklendirme Zafiyeti"*. |
+| **`choiceId`** (Genel Tercih) | Stratejik Fokus | Zamanının %50'sinden fazlasını İletişime, %20'sinden azını Reaktöre ayırırsa *"Stratejik Önceliklendirme Zafiyeti"*. |
 
 ---
 
@@ -60,8 +64,7 @@ Bu bölümde aday, bir ana görevi tamamlarken çıkan pop-up uyarılarını yö
 | :--- | :--- | :--- |
 | **`tile_flips`** (Kutu Çevirme Sayısı) | Dürtüsellik ve Deneme/Yanılma | >5 çevirme: **-10 Odak Skoru**, *"Dürtüsel Karar Alma"* riski ataması. |
 | **`box_closing_strategy`** (Kutu Kapama Stratejisi) | Operasyonel Verimlilik | Toplu kapama: **+10 Odak Skoru**, Tek tek kapama: **-5 Odak Skoru**. |
-| **`symbolMatchErrors`** (Eşleşme Hataları) | Dikkat Bölünmesi Toleransı | Hata yapılması: **-15 Odak Skoru**, *"Odak Erozyonu"* bayrağı. |
-| **`reactionTime`** (Reaksiyon Süresi) | Odaklanma Hızı | Hızlı (<1sn): **+5 Odak Skoru**, Yavaş (>3sn): **-5 Odak Skoru**. |
+| **`maxRecoveryTimeMs`** (Göreve Dönüş) | Çeldirici Zafiyeti (Odak Erozyonu) | Pop-up'ı kapattıktan sonra ana göreve dönme süresi >2.5sn ise *"Odak Erozyonu"* bayrağı tetiklenir. |
 
 ---
 
@@ -91,7 +94,7 @@ Bu bölümde aday, bir ana görevi tamamlarken çıkan pop-up uyarılarını yö
 | :--- | :--- | :--- |
 | **`failedAttempts`** (Hatalı PIN) | Panik Toleransı | Geri sayımda hatalı girilen her PIN **-10 Stres Skoru** yaratır. |
 | **`readingTime`** | Seçici Okuma Yetisi | Çok hızlı veya çok yavaş okunması Analitik Skorlara doğrudan yansır. |
-| **`durationMs`** | Analitik Paralizi (Donma) | Okuma süresi (>60sn) aşılır ve kilitlenilirse, aday *"Analitik Paralizi"* için mimlenir. |
+| **`durationMs`** (Baseline Delta) | Analitik Paralizi (Donma) | Sakin zamanlardaki (Modül 3) Baseline hızına kıyasla stresli çözüme >30sn fazla harcarsa *"Analitik Paralizi"* mimlenir. |
 
 ---
 
@@ -110,18 +113,18 @@ Bu bölümde aday, bir ana görevi tamamlarken çıkan pop-up uyarılarını yö
 
 ---
 
-## 💥 7. BÖLÜM: BINARY CODE (ARAŞTIRMA VE ÇEVİKLİK)
+## 💥 7. BÖLÜM: SİSTEMSEL ÇÖKÜŞ (RİSK VE BASKI ALTINDA DURU GÖRÜ)
 
 > [!NOTE]
-> **🎞️ Sahne & Atmosfer:** Donmuş bir sistem ekranında akan 0 ve 1'lerden oluşan sonsuz bir veri şeridi.  
-> **🎯 Amaç:** Bilmediği bir konuyu (Binary) anlık olarak dış kaynaklardan araştırıp öğrenme ve uygulama hızını ölçmek.  
-> **🧠 Ölçülen Zeka Türü:** **Pratik Zeka (Practical Intelligence)**, Çeviklik ve Kaynak/Bilgi Kullanımı Araştırma.  
-> **📊 Psikometrik & İK Karşılığı:** Öğrenme Çevikliği (Learning Agility), Araştırmacılık ve Problem Çözme.
+> **🎞️ Sahne & Atmosfer:** Donmuş bir sistem ekranında akan 0 ve 1'lerden oluşan sonsuz bir veri şeridi ve iki büyük protokol butonu (Kırmızı/Mavi).  
+> **🎯 Amaç:** Kriz anında görsel karmaşaya (akar binary zemin) kapılmadan, doğru seçeneği bulup (Mavi Buton) sezgisel refleksin veya deneme-yanılma riskinin kalitesini ölçmek.  
+> **🧠 Ölçülen Zeka Türü:** **Pratik Zeka (Practical Intelligence)** ve Kriz Altında Baskı Yönetimi.  
+> **📊 Psikometrik & İK Karşılığı:** Panik Yönetimi, Dürtüsellik Kontrolü ve Stres Toleransı.
 
 | 🧮 Toplanan Veriler (Log) | 🎯 Psikolojik ve İK Çıkarımı | ⚙️ Analiz Motoru Puanlaması |
 | :--- | :--- | :--- |
-| **`durationMs`** | Araştırma Hızı (Resourcefulness) | Doğru cevabı bulmak için dış kaynaklarda geçen araştırma hızı; Stres altındaki analitik atikliği işaret eder. |
-| **`errorCount`** | Yanlış Kod/Metin Girişi | Yanlış Binary çözümlemesi, panik ve kriz esnasında okuduğunu anlama (hatalı decode) sorununu saptar. |
+| **`choiceId`** | Dürtüsel Risk Alma | İlk denemede Kırmızı Butona direkt basmak dürtüsel reaksiyonu temsil eder. |
+| **`errorCount`** | Panik Hataları | Kırmızı butona basma sayısı; stres altında artan panik (rastgele tuşlama) eğilimini saptar. |
 
 ---
 
@@ -135,7 +138,7 @@ Bu bölümde aday, bir ana görevi tamamlarken çıkan pop-up uyarılarını yö
 
 | 🧮 Toplanan Veriler (Log) | 🎯 Psikolojik ve İK Çıkarımı | ⚙️ Analiz Motoru Puanlaması |
 | :--- | :--- | :--- |
-| **`choiceId`** | Mantık vs Duygu Refleksi | Önce kendi maskesini takanlar: **+15 Stres ve Karar Skoru** (Protokolü doğru uygular). |
+| **`choiceId`** | Mantık vs Duygu Refleksi | Önce maske takan: **+15 Skoru**. Sızıntıya maskesiz koşan aday oksijensizlikten *Bilişsel Hasar* alır, oyun vizyonu kararır. (Bedelli Fedakarlık) |
 | **`actionDelay`** | Reaksiyon Süresi | Aciliyete uygun tepki mi yoksa felaketi izleme eğilimi mi? |
 
 ---
@@ -150,7 +153,7 @@ Bu bölümde aday, bir ana görevi tamamlarken çıkan pop-up uyarılarını yö
 
 | 🧮 Toplanan Veriler (Log) | 🎯 Psikolojik ve İK Çıkarımı | ⚙️ Analiz Motoru Puanlaması |
 | :--- | :--- | :--- |
-| **`choiceId`** | Kontrol Odağı (Locus) | Kendini suçlayanlar *"Öz-Farkındalık (İçsel Dnt)*", sistemi suçlayanlar *"Savunmacı"* bayrağı alır. |
+| **`choiceId`** | Kontrol Odağı (Locus) | Sistem; "ekip dinamikleri, operasyonel kısıtlar" gibi manipülatif dışsal bahanelere sığınanları *"Savunmacı"*, kendini suçlayanları *"İçsel Dnt"* işaretler. |
 
 ---
 
@@ -193,7 +196,7 @@ Bu bölümde aday, bir ana görevi tamamlarken çıkan pop-up uyarılarını yö
 
 | 🧮 Toplanan Veriler (Log) | 🎯 Psikolojik ve İK Çıkarımı | ⚙️ Analiz Motoru Puanlaması |
 | :--- | :--- | :--- |
-| **`choiceId`** | Ekibe Güven & Devretme | Delege eden: **+25 Liderlik** (Vizyoner Lider). "Her şeyi ben yaparım" diyen, *"Mikro-Yönetici Kontrolcü"* olarak etiketlenir ve yönetici özeti bozulur. |
+| **`choiceId`** | Ekibe Güven vs Sorumluluktan Kaçma | Bölüm 12'de hataya tolerans gösterip 13'te yetki devreden *"Vizyoner Lider"*. Bölüm 12'de cezalandırıp 13'te devreden *"Sorumluluktan Kaçan (Abdication)"* ilan edilir. |
 | **`readDuration`** | Son Karar Ağırlığı | Liderlik ağırlığını hissetme süresinin metrik analizi (Okuma ile bekleme arası gecikmeler). |
 
 ---
@@ -225,10 +228,11 @@ Adayın stres altındaki davranışsal sapmalarını ölçer:
 ## 🚩 EKSTRA PROFESYONEL BULGULAR (FLAGS)
 
 Analiz motoru, İK uzmanına şu kritik bulguları raporlar:
--   **Analitik Paralizi:** Kriz anında (B5, B7) karar verme süresinin kritik eşikleri aşması.
--   **Dürtüsel Cezalandırıcı:** Partner hatasına (B12) saniyeler içinde sert tepki verme eğilimi.
+-   **Analitik Paralizi:** Kriz anında (B5, B7) Baseline ortalamasına kıyasla aşırı yavaş kalma ve kitlenme.
+-   **Odak Erozyonu:** Çeldiriciden (pop-up) sonra ana göreve dönmekte (Task Recovery) 2.5 sn'den fazla gecikme.
+-   **Abdication (Sorumluluktan Kaçma):** Hatayı cezalandırıp, yetkiyi riskli anda takıma devretme kolaycılığı.
 -   **Makyavelist/Otoriter:** Kurum çıkarı için empatiyi yok sayma (B10, B11, B13).
--   **Hizmetkar Liderlik:** Hataları mentorajla çözme (B12) ve yetki delege etme (B13).
+-   **Hizmetkar Liderlik:** Hataları mentorajla çözme (B12) ve sağlıklı yetki delege etme (B13).
 
 ---
 

@@ -1,485 +1,598 @@
 import 'package:horizon_protocol/models/game_models.dart';
 
 class AssessmentEngine {
-  // Statik analiz için metodlar
+  // --- YENİ NESİL ANALİZ MOTORU V3 (TAMAMEN SIFIRDAN) ---
+  // Bu motor, bölümler tek tek incelenerek en baştan inşa edilecektir.
+  // Mevcut hiçbir matematiksel örüntü veya varsayılan analiz kullanılmamaktadır.
+
   Map<String, double> calculateScores(List<Decision> decisions, List<ChapterMetric> metrics) {
-    return {
-      'cognitive_focus': _calculateCognitiveFocus(decisions, metrics),
-      'strategic_prioritization': _calculateStrategicPrioritization(decisions, metrics),
-      'stress_resilience': _calculateStressResilience(decisions, metrics),
-      'leadership_impact': _calculateLeadershipImpact(decisions, metrics),
-      'consistency_index': _calculateConsistencyIndex(decisions),
-      // Radar Chart Metrics
-      'trust_score': _calculateTrustScore(decisions, metrics),
-      'feedback_score': _calculateFeedbackScore(decisions, metrics),
-      'initiative_score': _calculateInitiativeScore(decisions, metrics),
-      'team_impact': _calculateTeamImpact(decisions, metrics),
-    };
+    return <String, double>{};
   }
 
   List<String> generateFlags(List<Decision> decisions, List<ChapterMetric> metrics) {
-    List<String> flags = [];
-
-    // --- Helper Fonksiyonlar ---
-    bool hasVal(String chapter, String choice) => 
-        decisions.any((d) => d.chapterId.toLowerCase().contains(chapter.toLowerCase()) && 
-                             d.choiceId.toLowerCase().contains(choice.toLowerCase()));
+    List<String> allFindings = [];
     
-    bool hasTrigger(String chapter, String trigger) =>
-        decisions.any((d) => d.chapterId.toLowerCase().contains(chapter.toLowerCase()) && 
-                             d.triggers.any((t) => t.toLowerCase().contains(trigger.toLowerCase())));
-                             
-    final c3Metrics = metrics.where((m) => m.chapterId.contains('3')).firstOrNull;
-    final c5Dec = decisions.where((d) => d.chapterId.contains('5')).firstOrNull;
-    final c6Dec = decisions.where((d) => d.chapterId.contains('6')).firstOrNull;
-    final c7Dec = decisions.where((d) => d.chapterId.contains('7')).firstOrNull;
+    // Bölüm 1 Analizi
+    try {
+      final ch1Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 1"));
+      allFindings.addAll(_analyzeChapter1(ch1Metric));
+    } catch (_) {}
 
-    // 1. Kriz Altında Paralizi (Decision Paralysis)
-    if (c5Dec != null && c5Dec.durationMs > 60000 && c7Dec != null && c7Dec.durationMs > 25000) {
-      flags.add('analitik_paralizi'); // Karar vermekte çok yavaş kalıyor
+    // Bölüm 2 Analizi (Triage)
+    try {
+      final ch2Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 2"));
+      allFindings.addAll(_analyzeChapter2(ch2Metric));
+    } catch (_) {}
+
+    // Bölüm 3 Analizi (Parazitler)
+    try {
+      final ch3Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 3"));
+      allFindings.addAll(_analyzeChapter3(ch3Metric));
+    } catch (_) {}
+
+    // Bölüm 4 Analizi (Karanlık Koridorlar)
+    try {
+      final ch4Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 4"));
+      allFindings.addAll(_analyzeChapter4(ch4Metric));
+    } catch (_) {}
+
+    // Bölüm 5 Analizi (Reaktör Krizi)
+    try {
+      final ch5Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 5"));
+      allFindings.addAll(_analyzeChapter5(ch5Metric));
+    } catch (_) {}
+
+    // Bölüm 6 Analizi (Alarm Yorgunluğu)
+    try {
+      final ch6Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 6"));
+      allFindings.addAll(_analyzeChapter6(ch6Metric));
+    } catch (_) {}
+
+    // Bölüm 7 Analizi (Sistemsel Çöküş)
+    try {
+      final ch7Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 7"));
+      allFindings.addAll(_analyzeChapter7(ch7Metric));
+    } catch (_) {}
+
+    // Bölüm 8 Analizi (Dış Gövde Çatlağı)
+    try {
+      final ch8Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 8"));
+      allFindings.addAll(_analyzeChapter8(ch8Metric));
+    } catch (_) {}
+
+    // Bölüm 9 Analizi (Enkazın Ardından)
+    try {
+      final ch9Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 9"));
+      allFindings.addAll(_analyzeChapter9(ch9Metric));
+    } catch (_) {}
+
+    // Bölüm 10 Analizi (Buzdan Çıkan Yüz)
+    try {
+      final ch10Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 10"));
+      allFindings.addAll(_analyzeChapter10(ch10Metric));
+    } catch (_) {}
+
+    // Bölüm 11 Analizi (İlk Tartışma)
+    try {
+      final ch11Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 11"));
+      allFindings.addAll(_analyzeChapter11(ch11Metric));
+    } catch (_) {}
+
+    // Bölüm 12 Analizi (Partnerin Hatası)
+    try {
+      final ch12Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 12"));
+      allFindings.addAll(_analyzeChapter12(ch12Metric));
+    } catch (_) {}
+
+    // Bölüm 13 Analizi (Güven Testi)
+    try {
+      final ch13Metric = metrics.firstWhere((m) => m.chapterId.contains("Bölüm 13"));
+      allFindings.addAll(_analyzeChapter13(ch13Metric));
+    } catch (_) {}
+
+    return allFindings;
+  }
+
+  List<String> _analyzeChapter1(ChapterMetric metric) {
+    List<String> findings = [];
+    final timeline = metric.additionalData?['timeline'] as List<dynamic>? ?? [];
+    if (timeline.isEmpty) return findings;
+
+    final firstAction = timeline.cast<Map<String, dynamic>?>().firstWhere((a) => a?['a'] == 'WRONG_ANSWER' || a?['a'] == 'CORRECT_ANSWER', orElse: () => null);
+    if (firstAction != null && (firstAction['t'] as int) < 3000) findings.add("Dürtüsel Aksiyon");
+
+    final correctActionIndex = timeline.indexWhere((a) => a['a'] == 'CORRECT_ANSWER');
+    final bool isSuccess = correctActionIndex != -1;
+    final wrongActions = timeline.where((a) => a['a'] == 'WRONG_ANSWER').toList();
+
+    if (isSuccess) {
+      final correctAction = timeline[correctActionIndex];
+      final num finishTimeNum = correctAction['t'] as num? ?? 0;
+      final int finishTime = finishTimeNum.toInt();
+      final int trials = correctAction['trials'] as int? ?? 1;
+
+      if (finishTime < 30000) findings.add("Analitik Çeviklik");
+      else findings.add("Sistematik Çözümleme");
+
+      bool has98Error = wrongActions.any((a) => a['input']?.toString().toUpperCase().contains("98") ?? false);
+      if (trials == 2) findings.add("Adaptif Öğrenme");
+      else if (trials >= 3 && !has98Error) findings.add("Rastgele Başarı");
+      if (has98Error && trials >= 2 && !findings.contains("Rastgele Başarı")) findings.add("Örüntü Tanıma");
+    } else {
+      findings.add("Bilişsel Blokaj");
+    }
+    return findings;
+  }
+
+  List<String> _analyzeChapter2(ChapterMetric metric) {
+    List<String> findings = [];
+    final data = metric.additionalData ?? {};
+    final levels = data['final_levels'] as Map<String, dynamic>? ?? {};
+    final int reactor = levels['reactor'] ?? 0;
+    final int oxygen = levels['oxygen'] ?? 0;
+    final int comms = levels['comms'] ?? 0;
+    final int switches = data['switch_count'] ?? 0;
+    
+    // 1. Denge Analizi (Stratejik Orkestrasyon > %50)
+    final avg = (reactor + oxygen + comms) / 3;
+    final double diff = ( (reactor-avg).abs() + (oxygen-avg).abs() + (comms-avg).abs() ) / 3;
+    final bool isBalanced = diff < 15 && reactor > 50 && oxygen > 50 && comms > 50;
+
+    if (isBalanced) {
+      findings.add("Stratejik Orkestrasyon");
     }
 
-    // 2. Çeldirici Zafiyeti (High Distractibility)
-    bool distractible = false;
-    if (c3Metrics != null && c3Metrics.additionalData != null) {
-      final timeline = c3Metrics.additionalData!['timeline'] as List<dynamic>?;
-      if (timeline != null) {
-        final popups = timeline.where((e) => e != null && e is Map && e['a'] == 'POPUP_CLOSED');
-        if (popups.isNotEmpty) {
-          final popupClosed = popups.first as Map;
-          if (popupClosed['reactionTime'] != null && popupClosed['reactionTime'] > 2000) {
-            flags.add('odak_erozyonu_(çeldirici_zafiyeti)');
-            distractible = true;
-          }
-        }
-      }
+    // 2. Önceliklendirme Analizi (> %80)
+    if (reactor >= 80 && reactor > oxygen && reactor > comms) {
+      findings.add("Operasyonel Sürdürülebilirlik");
+    }
+    if (oxygen >= 80 && oxygen > reactor && oxygen > comms) {
+      findings.add("İnsan Sermayesi ve Esenlik");
+    }
+    if (comms >= 80 && comms > reactor && comms > oxygen) {
+      findings.add("Paydaş Yönetimi ve İletişim");
     }
 
-    // 3. Akıcı Zeka ve Dürtüsellik (Bölüm 1 Hata Analizi)
-    final c1Metrics = metrics.where((m) => m.chapterId.contains('1')).firstOrNull;
-    if (c1Metrics != null && c1Metrics.additionalData != null) {
-      int errors = c1Metrics.additionalData!['errorCount'] ?? 0;
-      int t1 = c1Metrics.additionalData!['timeToFirstClick'] ?? 0;
-      if (errors > 3) {
-        flags.add('dürtüsel_karar_alma_riski');
-        flags.add('akıcı_zeka_bariyeri'); 
-      }
-      if (t1 > 20000) {
-        if (!flags.contains('analitik_paralizi')) flags.add('analitik_paralizi');
-      }
+    // 3. Negatif/Riskli Bulgular
+    if (switches > 8) {
+      findings.add("Reaktif Kriz Tepkisi");
+    }
+    
+    bool hasTunnel = (reactor > 80 && oxygen < 20) || (reactor > 80 && comms < 20) || 
+                     (oxygen > 80 && reactor < 20) || (oxygen > 80 && comms < 20) ||
+                     (comms > 80 && reactor < 20) || (comms > 80 && oxygen < 20);
+    if (hasTunnel) {
+      findings.add("Tünel Vizyonu");
     }
 
-    // 4. Aşırı Reaktif Karar Verme (Bölüm 2)
-    final c2Dec = decisions.where((d) => d.chapterId.contains('2')).firstOrNull;
-    if (c2Dec != null && c2Dec.durationMs < 2000) {
-      flags.add('aşırı_reaktif_karar_verme');
+    if (avg < 50) {
+      findings.add("Karar Paralizi");
     }
 
-    // 4. Dürtüsel Karar Alma (Genel ve Bölüm 6)
-    if ((c6Dec != null && c6Dec.triggers.contains('panic_clicks')) || 
-        decisions.any((d) => d.durationMs < 1000 && !d.chapterId.contains('1'))) {
-      if (!flags.contains('dürtüsel_karar_alma_riski')) flags.add('dürtüsel_karar_alma_riski');
+    return findings;
+  }
+
+  List<String> _analyzeChapter3(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
+    final totalTime = m.totalTimeMs / 1000.0;
+    
+    final int actualMemoryErrors = data['actualMemoryErrors'] as int? ?? 0;
+    final int missedPopups = data['missedPopups'] as int? ?? 0;
+    final int immediateDismissals = data['immediateDismissals'] as int? ?? 0;
+    final int recoveryTime = data['avgRecoveryTimeMs'] as int? ?? 0;
+    final int exploration8 = data['seenIndicesCount_8'] as int? ?? 0;
+    final int readingParalysis = data['readingParalysisCount'] as int? ?? 0;
+
+    // KATEGORİ A: Zaman ve İşlem Kapasitesi
+    if (totalTime < 45) {
+      flags.add("Hiper-Odak");
+    } else if (totalTime >= 45 && totalTime <= 75) {
+      flags.add("Dengeli Analizci");
+    } else if (totalTime > 75 && totalTime <= 100) {
+      flags.add("Bilişsel Efor");
+    } else if (totalTime > 100) {
+      flags.add("İşlem Ataleti");
     }
 
-    // 5. Sistem Odaklılık vs Empati Odaklılık (C2 ve C4 Kesişimi)
-    bool systemFocus = hasVal('2', 'reactor') && hasVal('4', 'lab');
-    bool empathyFocus = hasVal('2', 'quarters') && hasVal('4', 'dorm');
-    if (systemFocus) flags.add('katı_sistem_odaklılık');
-    if (empathyFocus) flags.add('yüksek_sosyal_empati');
-
-    // 5. Otoriter ve Makyavelist Eğilimler (C10, C11, C13)
-    if (hasVal('10', 'kael') && hasVal('11', 'authoritarian') && hasVal('13', 'self')) {
-      flags.add('otoriter_kontrol_ihtiyacı');
-      flags.add('makyavelist_eğilimler');
-    } else if (hasVal('11', 'authoritarian')) {
-      flags.add('direktif_yönetim_tarzı');
+    // KATEGORİ B: Davranışsal ve Stratejik Teknik
+    if (exploration8 > 6) {
+      flags.add("Metodik Haritalama");
+    }
+    if (missedPopups < 2) {
+      flags.add("Bilişsel Filtreleme");
+    }
+    if (recoveryTime < 1200 && recoveryTime > 0) {
+      flags.add("Bilişsel Toparlanma Hızı");
+    }
+    if (immediateDismissals > 5) {
+      flags.add("Dürtüsel Refleks");
+    }
+    if (readingParalysis > 3 || recoveryTime >= 2500) {
+      flags.add("Odak Erozyonu");
     }
 
-    // 6. Hizmetkar Liderlik ve Psikolojik Güvenlik (C11, C12, C13)
-    if (hasVal('12', 'pardon') && hasVal('13', 'delegate')) {
-      flags.add('hizmetkar_liderlik_potansiyeli');
-      flags.add('psikolojik_güvenlik_inşası');
-      if (hasVal('11', 'collaborative')) flags.add('güçlü_işbirliği_kültürü');
+    // KATEGORİ C: Doğruluk ve Riskler
+    if (actualMemoryErrors <= 2) {
+      flags.add("Hafıza Hassasiyeti");
     }
-
-    // 7. Dışsal vs İçsel Denetim Odağı (Locus of Control) - C9 ve C12 kesişimi
-    if (hasVal('9', 'external') && hasVal('12', 'punish')) {
-      flags.add('dışsal_denetim_odağı_(savunmacı)');
-    } else if (hasVal('9', 'internal')) {
-      flags.add('öz_farkındalık_ve_içsel_denetim');
+    if (actualMemoryErrors > 6 && missedPopups > 4) {
+      flags.add("Multitasking Kaygısı");
     }
-
-    // 8. Taktiksel Soğukkanlılık ve Dürtüsel Cezalandırma (Bölüm 12)
-    final d12 = decisions.where((d) => d.chapterId.contains('12')).firstOrNull;
-    if (d12 != null && d12.choiceId.contains('punish') && d12.durationMs < 1200) {
-      flags.add('dürtüsel_cezalandırıcı_eğilimi');
-    }
-
-    // 9. Triage Mikro-Metrik Analizi (Kararsızlık ve Önceliklendirme)
-    final c2Metrics = metrics.where((m) => m.chapterId.contains('2')).firstOrNull;
-    if (c2Metrics != null && c2Metrics.additionalData != null) {
-      final data = c2Metrics.additionalData!;
-      int switches = data['switch_count'] ?? 0;
-      Map<String, dynamic>? finalLevels = data['final_levels'];
-      
-      if (switches > 12) {
-        flags.add('karar_verme_kararsızlığı_(aşırı_flickering)');
-      }
-      
-      if (finalLevels != null) {
-        int r = finalLevels['reactor'] ?? 0;
-        int o = finalLevels['oxygen'] ?? 0;
-        int c = finalLevels['comms'] ?? 0;
-        
-        // Kritik Sistem İhmali (Reaktör patlarken iletişimle uğraşmak)
-        if (r < 30 && c > 70) {
-          flags.add('stratejik_önceliklendirme_zafiyeti');
-        }
-        
-        // Mükemmeliyetçilik (Her şeyi dengede tutma çabası)
-        if (r > 65 && o > 65 && c > 65) {
-          flags.add('yüksek_operasyonel_titizlik_(mükemmeliyetçilik)');
-        }
-      }
-    }
-
-    // 10. Bölüm 3 Gelişmiş Metrikler (Kutu Yönetimi)
-    if (c3Metrics != null && c3Metrics.additionalData != null) {
-      final data = c3Metrics.additionalData!;
-      int flips = data['tile_flips'] ?? 0;
-      int symErrors = data['symbolMatchErrors'] ?? 0;
-      String strategy = data['box_closing_strategy'] ?? '';
-
-      if (flips < 8 && symErrors == 0) {
-        flags.add('stratejik_sorun_giderme_yetkinliği');
-      } else if (flips > 15) {
-        flags.add('deneme_yanılma_odaklı_yaklaşım');
-      }
-      
-      if (strategy.contains('Toplu')) {
-        flags.add('yüksek_operasyonel_hız_tercihi');
-      }
-    }
-
-    if (!distractible && c6Dec != null && !c6Dec.triggers.contains('panic_clicks') && hasVal('7', 'success')) {
-      flags.add('ileri_düzey_kriz_soğukkanlılığı');
-    }
-
-    // Hiçbir belirgin özellik yoksa
-    if (flags.isEmpty) flags.add('normatif_profil_çizgisi');
 
     return flags;
   }
 
-  // --- ÖZEL FORMÜLLER ---
+  List<String> _analyzeChapter4(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
+    final totalTime = m.totalTimeMs / 1000.0;
+    
+    final String selectedArea = data['selectedArea']?.toString().toLowerCase() ?? "";
+    final int revokedConfirmations = data['revokedConfirmations'] as int? ?? 0;
 
-  double _calculateConsistencyIndex(List<Decision> decisions) {
-    double consistency = 100.0;
+    // KATEGORİ A: Değerler Hiyerarşisi (Hangi Alan Korundu?)
+    // Not: selectedArea feda edilen (kapatılan) alandır. Korunan alanlar diğer ikisidir.
+    if (selectedArea == "greenhouse" || selectedArea == "quarters") {
+      if (selectedArea != "labs") flags.add("Ar-Ge Koruyucusu");
+    } 
+    if (selectedArea == "labs" || selectedArea == "greenhouse") {
+      if (selectedArea != "quarters") flags.add("Çalışan Hakları Savunucusu");
+    }
+    if (selectedArea == "labs" || selectedArea == "quarters") {
+      if (selectedArea != "greenhouse") flags.add("ESG / Vizyon Bilinci");
+    }
     
-    // C2 (Triage) ve C4 (Kritik Seçim) arasındaki felsefi tutarlılık
-    final d2 = decisions.where((d) => d.chapterId.contains('2')).firstOrNull;
-    final d4 = decisions.where((d) => d.chapterId.contains('4')).firstOrNull;
+    // Basitleştirilmiş mantık: selectedArea dışındakiler korundu kabul edilir ama biz her seçim için tek baskın bulgu verelim.
+    // Kullanıcının "korunan alan" vurgusuna sadık kalarak feda edilmeyeni buluyoruz.
+    flags.clear(); // Yukardakileri temizleyip daha net set yapalım
+    if (selectedArea == "greenhouse" || selectedArea == "quarters") flags.add("Ar-Ge Koruyucusu");
+    else if (selectedArea == "labs") flags.add("Çalışan Hakları Savunucusu");
     
-    if (d2 != null && d4 != null) {
-      bool d2System = d2.choiceId.toLowerCase().contains('reactor');
-      bool d4System = d4.choiceId.toLowerCase().contains('lab');
-      if (d2System != d4System) consistency -= 25.0; 
+    // Daha tutarlı hiyerarşi (Feda edilmeyene göre):
+    flags.clear();
+    if (selectedArea == "quarters") flags.add("Ar-Ge Koruyucusu");
+    if (selectedArea == "labs") flags.add("Çalışan Hakları Savunucusu");
+    if (selectedArea == "greenhouse") flags.add("Stratejik Önceliklendirme");
+
+    // Kullanıcının tam istediği isimlendirme:
+    flags.clear();
+    if (selectedArea == "quarters") flags.add("Ar-Ge Koruyucusu"); 
+    if (selectedArea == "labs") flags.add("Çalışan Hakları Savunucusu");
+    if (selectedArea == "greenhouse") flags.add("ESG / Vizyon Bilinci"); 
+
+    // KATEGORİ B: Klinik Derinlik (Davranışsal Analiz)
+    if (revokedConfirmations == 0) {
+      flags.add("Özgüvenli Karar");
+    } else {
+      flags.add("Bilişsel Çalkantı");
     }
 
-    // C11 (Tartışma) ve C12 (Hata Yönetimi) arasındaki yönetim tutarlılığı
-    final d11 = decisions.where((d) => d.chapterId.contains('11')).firstOrNull;
-    final d12 = decisions.where((d) => d.chapterId.contains('12')).firstOrNull;
-    
-    if (d11 != null && d12 != null) {
-      bool d11Collab = d11.choiceId.toLowerCase().contains('collaborative');
-      bool d12Punish = d12.choiceId.toLowerCase().contains('punish');
-      // İşbirlikçi deyip, hatada hemen cezalandırıyorsa tutarsızdır.
-      if (d11Collab && d12Punish) consistency -= 20.0;
+    if (totalTime < 10) {
+      flags.add("Yüzeysel Bakış");
     }
 
-    return consistency.clamp(0, 100);
+    return flags;
   }
 
-  double _calculateCognitiveFocus(List<Decision> decisions, List<ChapterMetric> metrics) {
-    double score = 50.0; 
+  List<String> _analyzeChapter5(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
     
-    // Bölüm 1 Hız ve Hata Analizi (KPI: Minimum Süre)
-    final c1Metrics = metrics.where((m) => m.chapterId.contains('1')).firstOrNull;
-    if (c1Metrics != null) {
-      if (c1Metrics.totalTimeMs <= 6000) score += 20.0; // Yüksek hız bonusu
-      else if (c1Metrics.totalTimeMs > 20000) score -= 15.0;
-      
-      // Hata cezası (Dürtüsellik)
-      int errors = c1Metrics.additionalData?['errorCount'] ?? 0;
-      if (errors > 2) score -= 20.0;
-    }
+    // Güvenli tip dönüşümü (eski vs yeni veri uyumluluğu için readingTime de kontrol edilir)
+    final num readingTimeNum = data['readingTimeMs'] as num? ?? data['readingTime'] as num? ?? 0;
+    final double readingTimeSec = readingTimeNum.toDouble() / 1000.0;
+    final int failedAttempts = data['failedAttempts'] as int? ?? 0;
+    final bool usedDecoy = data['usedDecoy'] == true || data['usedDecoy'] == "true";
+    final String result = data['result']?.toString() ?? "Timeout";
 
-    // Bölüm 3 Parazitler (Yan uyaranlara rağmen odaklanma)
-    final c3Metrics = metrics.where((m) => m.chapterId.contains('3')).firstOrNull;
-    if (c3Metrics != null && c3Metrics.additionalData != null) {
-      final timeline = c3Metrics.additionalData!['timeline'] as List<dynamic>?;
-      if (timeline != null) {
-        final popups = timeline.where((e) => e != null && e is Map && e['a'] == 'POPUP_CLOSED');
-        if (popups.isNotEmpty) {
-          final popup = popups.first as Map;
-          if (popup['reactionTime'] != null) {
-            int rt = popup['reactionTime'];
-            if (rt < 800) score += 20.0; // Mükemmel odak ve refleks
-            else if (rt > 2000) score -= 15.0; // Çelinebilirlik yüksek
-          }
-        }
+    // KATEGORİ A: Risk Toleransı ve Stres Yönetimi (Bypass Kullanımı)
+    if (result == "Bypass") {
+      if (readingTimeSec < 10 && readingTimeSec > 0) {
+        flags.add("Kognitif Kaçınma / Protokol İhlali");
+      } else {
+        flags.add("Stres Bağımlı Kural Esnetme");
       }
+    } else if (result == "Success") {
+      flags.add("Kognitif Dayanıklılık ve Süreç Sadakati");
     }
 
-    // Bölüm 5 Şifre çözme hızı (KPI: Minimum Süre)
-    final c5 = decisions.where((d) => d.chapterId.contains('5')).firstOrNull;
-    final c5Metrics = metrics.where((m) => m.chapterId.contains('5')).firstOrNull;
-    if (c5 != null) {
-      if (c5.durationMs < 35000) score += 20.0; // Yüksek verimlilik
-      else if (c5.durationMs > 80000) score -= 15.0;
-      
-      if (c5Metrics != null && c5Metrics.additionalData != null) {
-        int rTime = c5Metrics.additionalData!['readingTime'] ?? 0;
-        if (rTime > 45000) score -= 10.0; 
-      }
+    // KATEGORİ B: Okuma-Anlama ve Doğruluk
+    if (usedDecoy) {
+      flags.add("Dürtüsel Yanılgı");
+    } else if (result == "Success" && failedAttempts == 0) {
+      flags.add("Metodik Veri Süzme");
+    } else if (failedAttempts > 0 && !usedDecoy) {
+      // 1 deneme de olsa, 3 deneme de olsa eğer başarısız olunmuşsa
+      flags.add("Hevristik Deneme Döngüsü");
     }
 
-    // Bölüm 3 Ek Metrikler (Derinleştirilmiş)
-    if (c3Metrics != null && c3Metrics.additionalData != null) {
-      int missed = c3Metrics.additionalData!['missedPopups'] ?? 0;
-      int symErrors = c3Metrics.additionalData!['symbolMatchErrors'] ?? 0;
-      int flips = c3Metrics.additionalData!['tile_flips'] ?? 0;
-      
-      if (missed > 2) score -= 10.0;
-      if (symErrors > 2) score -= 15.0;
-      
-      // Çok fazla gereksiz kutu çevirme "dağınık" bir odağı gösterir
-      if (flips > 15) score -= 15.0;
-      else if (flips < 7 && symErrors == 0) score += 10.0; // Verimli çalışma
+    // KATEGORİ C: Eylemsizlik
+    if (result == "Timeout" && failedAttempts == 0 && !usedDecoy) {
+      flags.add("Akut Karar Paralizisi");
     }
-    
-    return score.clamp(0, 100);
+
+    // Eğer hiç flag atanamadıysa bir fallback verelim
+    if (flags.isEmpty) {
+      if (result == "Timeout") flags.add("Akut Karar Paralizisi");
+      else flags.add("Hevristik Deneme Döngüsü");
+    }
+
+    return flags;
   }
 
-  double _calculateStrategicPrioritization(List<Decision> decisions, List<ChapterMetric> metrics) {
-    double score = 40.0;
+  List<String> _analyzeChapter6(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
     
-    // Sistem vs İnsan ağırlıkları
-    for (var d in decisions) {
-      final cid = d.choiceId.toLowerCase();
-      // Kurum/Strateji tercihleri
-      if (cid.contains('reactor') || cid.contains('lab') || cid.contains('strategic') || cid.contains('kael')) {
-        score += 15.0;
-      }
-      // Kısa vadeli duygusal/insani tercihler
-      if (cid.contains('quarters') || cid.contains('dorm') || cid.contains('empath') || cid.contains('elara')) {
-        score -= 5.0; 
-      }
+    final num decisionTimeMs = data['decisionTimeMs'] as num? ?? 0;
+    final int panicClicks = data['panicClicks'] as int? ?? data['panic_clicks'] as int? ?? 0;
+    final String finalDecision = data['finalDecision'] as String? ?? "vigilance";
+
+    // KATEGORİ A: Bilişsel Hız ve Acelecilik
+    if (decisionTimeMs < 5000) {
+      flags.add("Erken Karar / Alarm Yorgunluğu Zafiyeti");
+    } else {
+      flags.add("Dengeli / Hesaplanmış Reaksiyon");
     }
 
-    return score.clamp(0, 100);
+    // KATEGORİ B: Kriz ve Panik Yönetimi
+    if (panicClicks > 3) {
+      flags.add("Akut Motor Panik");
+    } else if (panicClicks == 0) {
+      flags.add("Soğukkanlı Kriz Gözlemcisi");
+    }
+
+    // KATEGORİ C: Gözlem vs Konfor
+    if (finalDecision == "isolate") {
+      flags.add("Bilgi Algısı İptali / Körlük Kararı");
+    } else {
+      flags.add("Gerçeklik Metaneti / Şeffaflık");
+    }
+
+    return flags;
   }
 
-  double _calculateStressResilience(List<Decision> decisions, List<ChapterMetric> metrics) {
-    double score = 50.0;
+  List<String> _analyzeChapter7(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
     
-    final c5Metrics = metrics.where((m) => m.chapterId.contains('5')).firstOrNull;
-    final c6 = decisions.where((d) => d.chapterId.contains('6')).firstOrNull;
-    if (c6 != null) {
-      if (c6.triggers.contains('panic_clicks') || c6.triggers.contains('panic')) score -= 25.0;
-      else score += 15.0;
+    final num decisionTimeMs = data['decisionTimeMs'] as num? ?? 0;
+    final String finalResult = data['finalResult'] as String? ?? "";
+
+    if (finalResult == "BINARY_SOLVED") {
+      if (decisionTimeMs >= 10000) {
+        flags.add("Derin Analitik Odak");
+      } else {
+        flags.add("Şanslı Dürtüsellik");
+      }
+    } else if (finalResult == "FAIL_IMPULSIVE_RANDOM") {
+      flags.add("Kör Aksiyon / Dürtüsel Panik");
+    } else if (finalResult == "TIMEOUT_SURFACE_THINKER") {
+      flags.add("Bilişsel Kilitlenme (Bölüm 7)"); // 'Akut Karar Paralizisi' ile karışmaması için spesifik
     }
 
-    // Bölüm 7 - Çöküş (KPI: Seçim kalitesi ve Hata Sayısı)
-    // Bu bölümde süre ana kıstas değildir, çünkü rastgele seçim ihtimali vardır.
-    final c7 = decisions.where((d) => d.chapterId.contains('7')).firstOrNull;
-    final c7Metrics = metrics.where((m) => m.chapterId.contains('7')).firstOrNull;
-    
-    if (c7 != null) {
-      if (c7.choiceId.toLowerCase().contains('success') || c7.choiceId.toLowerCase().contains('blue')) score += 20.0;
-      // Süre cezası kaldırıldı, hata cezası korunuyor
-      
-      int errors = c7Metrics?.additionalData?['errorCount'] ?? 0;
-      if (errors > 0) score -= (errors * 8.0).clamp(0, 30); // Hatalı seçimler daha ağır cezalandırılır
-    }
-
-    // Sızıntı sırasındaki mantıksal eylem (Bölüm 8)
-    final c8 = decisions.where((d) => d.chapterId.contains('8')).firstOrNull;
-    final c8Metrics = metrics.where((m) => m.chapterId.contains('8')).firstOrNull;
-    if (c8 != null && c8.choiceId.toLowerCase().contains('mask')) {
-      score += 15.0; 
-    }
-    if (c8Metrics != null && c8Metrics.additionalData != null) {
-      int rTime = c8Metrics.additionalData!['reactionTime'] ?? 0;
-      if (rTime > 10000) score -= 15.0; // Kararsızlık
-    }
-
-    // Bölüm 5 Hatalı PIN denemeleri
-    if (c5Metrics != null && c5Metrics.additionalData != null) {
-      int failed = c5Metrics.additionalData!['failedAttempts'] ?? 0;
-      if (failed > 3) score -= 20.0;
-    }
-
-    // Bölüm 6 Susturma Hızı
-    final c6Metrics = metrics.where((m) => m.chapterId.contains('6')).firstOrNull;
-    if (c6Metrics != null && c6Metrics.additionalData != null) {
-      int mSpeed = c6Metrics.additionalData!['mutingSpeed'] ?? 0;
-      if (mSpeed < 1000) score += 15.0; // Hızlı refleks
-    }
-
-    return score.clamp(0, 100);
+    return flags;
   }
 
-  double _calculateLeadershipImpact(List<Decision> decisions, List<ChapterMetric> metrics) {
-    double score = 40.0;
+  List<String> _analyzeChapter8(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
     
-    final c11 = decisions.where((d) => d.chapterId.contains('11')).firstOrNull;
-    final c12 = decisions.where((d) => d.chapterId.contains('12')).firstOrNull;
-    
-    // Tartışma Yönetim Stili (Bölüm 11)
-    final c11Metrics = metrics.where((m) => m.chapterId.contains('11')).firstOrNull;
-    if (c11 != null) {
-      if (c11.choiceId.toLowerCase().contains('collaborative')) score += 15.0;
-      else if (c11.choiceId.toLowerCase().contains('authoritarian')) score -= 10.0; // Toksik etki riski
-      
-      if (c11Metrics != null && c11Metrics.additionalData != null) {
-        int agree = c11Metrics.additionalData!['finalAgreement'] ?? 0;
-        if (agree == 1) score += 10.0;
+    final num reactionTime = data['reactionTimeMs'] as num? ?? 0;
+    final String finalResult = data['finalResult'] as String? ?? "";
+
+    if (finalResult == "OXYGEN_MASK") {
+      if (reactionTime <= 20000) {
+        flags.add("Hesaplanmış Akut Müdahale");
+      } else {
+        flags.add("Gecikmeli Güvenlik");
       }
+    } else if (finalResult == "BREACH_AREA") {
+      flags.add("Dürtüsel Kahramanlık / Şehitlik Eğilimi");
+    } else if (finalResult == "TIMEOUT") {
+      flags.add("Akut Şok Kilitlenmesi");
     }
 
-    // Hata Toleransı / Koçluk (Bölüm 12)
-    final c12Metrics = metrics.where((m) => m.chapterId.contains('12')).firstOrNull;
-    if (c12 != null) {
-      if (c12.choiceId.toLowerCase().contains('pardon') || c12.choiceId.toLowerCase().contains('forgive')) score += 20.0;
-      if (c12.choiceId.toLowerCase().contains('punish')) score -= 15.0;
-      
-      if (c12Metrics != null && c12Metrics.additionalData != null) {
-        int fDelay = c12Metrics.additionalData!['forgiveDelay'] ?? 0;
-        if (fDelay > 5000) score -= 10.0; // Karar ağırlığı veya iç-çatışma gecikmesi
-      }
+    return flags;
+  }
+
+  List<String> _analyzeChapter9(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
+    
+    final String finalResult = data['finalResult'] as String? ?? "";
+
+    if (finalResult == "INTERNAL_SYSTEMIC") {
+      flags.add("Sistemik Öz-Eleştiri");
+    } else if (finalResult == "INTERNAL_ADAPTIVE") {
+      flags.add("Adaptif Öğrenme Odağı");
+    } else if (finalResult == "INTERNAL_RUMINATIVE") {
+      flags.add("Aşırı Öz-Yıkım / Suçluluk Melankolisi");
+    } else if (finalResult == "INTERNAL_TACTICAL") {
+      flags.add("Yüzeysel & Taktiksel Pişmanlık");
+    } else if (finalResult == "EXTERNAL_RATIONAL") {
+      flags.add("Mazeretçi Rasyonalizasyon");
+    } else if (finalResult == "EXTERNAL_FATALISTIC") {
+      flags.add("Kaderci Öğrenilmiş Çaresizlik");
+    } else if (finalResult == "EXTERNAL_AGGRESSIVE") {
+      flags.add("Açık Kurban Psikolojisi");
+    } else if (finalResult == "EXTERNAL_DENIAL") {
+      flags.add("Sorumluluk Reddi (Narsistik Savunma)");
     }
 
-    // Delegasyon ve Güven (Bölüm 13)
-    final c13 = decisions.where((d) => d.chapterId.contains('13')).firstOrNull;
-    final c13Metrics = metrics.where((m) => m.chapterId.contains('13')).firstOrNull;
-    if (c13 != null) {
-      if (c13.choiceId.toLowerCase().contains('delegate')) score += 25.0;
-      if (c13.choiceId.toLowerCase().contains('self')) score -= 15.0; // Mikro-yönetim
-      
-      if (c13Metrics != null && c13Metrics.additionalData != null) {
-        num dRatioNum = c13Metrics.additionalData!['delegationRatio'] ?? 0.0;
-        double dRatio = dRatioNum.toDouble();
-        int rDur = c13Metrics.additionalData!['readDuration'] ?? 0;
-        if (dRatio > 0.8) score += 10.0;
-        if (rDur < 5000 && rDur > 0) score -= 10.0; // Karar ağırlığı yetersiz (Yüzeysel liderlik)
-      }
+    return flags;
+  }
+
+  List<String> _analyzeChapter10(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
+    final duration = (m.totalTimeMs != 0) ? m.totalTimeMs : (data['totalTimeMs'] as num? ?? 0).toDouble();
+    final choice = data['choiceId'] as String? ?? "";
+
+    if (choice == "ELARA") {
+      flags.add("Sosyal Uyum Temelli Liderlik");
+    } else if (choice == "KAEL") {
+      flags.add("Teknik Yetkinlik Temelli Liderlik");
     }
-    
-    return score.clamp(0, 100);
+
+    if (duration > 15000) {
+      flags.add("Metodik Veri İnceleme");
+    } else {
+      flags.add("Sezgisel Seçim Refleksi");
+    }
+
+    return flags;
+  }
+
+  List<String> _analyzeChapter11(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
+    final choice = data['choiceId'] as String? ?? "TIMEOUT";
+    final delay = (data['decisionDelay'] as num? ?? 0).toDouble();
+
+    if (choice == "TIMEOUT" || delay >= 45000) {
+      flags.add("Pasif-Agresif Karar Felci");
+    } else if (choice == "COLLABORATIVE") {
+      flags.add("Psikolojik Güvenlik Mimarı");
+    } else if (choice == "RATIONAL") {
+      flags.add("Duygusuz Rasyonalizasyon");
+    } else if (choice == "AUTHORITY") {
+      flags.add("Hiyerarşik Komuta ve Karar Keskinliği");
+    } else if (choice == "MANIPULATIVE") {
+      flags.add("Duygusal Manipülasyon ve Toksik Etki");
+    }
+
+    return flags;
+  }
+
+  List<String> _analyzeChapter12(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
+    final choice = data['choiceId'] as String? ?? "";
+
+    if (choice == "CONSTRUCTIVE") {
+      flags.add("Gelişimsel Liderlik (Hata Toleransı)");
+    } else if (choice == "PROCEDURAL") {
+      flags.add("Kuralcı ve Soğuk Adalet");
+    } else if (choice == "PUNITIVE") {
+      flags.add("Cezalandırıcı Otoriter Yaklaşım");
+    }
+
+    return flags;
+  }
+
+  List<String> _analyzeChapter13(ChapterMetric m) {
+    List<String> flags = [];
+    final data = m.additionalData ?? {};
+    final choice = data['choiceId'] as String? ?? "";
+
+    if (choice == "DELEGATE") {
+      flags.add("Güven Odaklı Delegasyon");
+    } else if (choice == "SELF") {
+      flags.add("Koruyucu Mikro-Yönetim");
+    } else if (choice == "DISTRUST") {
+      flags.add("Suçlayıcı ve Toksik Güvensizlik");
+    }
+
+    return flags;
   }
 
   String getLeadershipArchetype(double leadershipScore, double strategicScore) {
-    if (leadershipScore >= 75 && strategicScore >= 70) return "İşbirlikçi Vizyoner";
-    if (leadershipScore >= 75 && strategicScore < 70) return "Hizmetkar Lider / Koç";
-    if (leadershipScore < 50 && strategicScore >= 70) return "Otorite Odaklı Uygulayıcı";
-    if (leadershipScore >= 50 && leadershipScore < 75 && strategicScore >= 70) return "Stratejik Yönetici";
-    if (leadershipScore < 45 && strategicScore < 45) return "Düzen Arayan / Reaktif Operatör";
-    return "Dengeli Köprü Kurucu";
+    return "Analiz Yapılandırılıyor";
   }
 
   String getExecutiveSummary(Map<String, double> scores, List<String> flags) {
-    List<String> insights = [];
-
-    // Bilişsel ve Stratejik Yetiler
-    double focus = scores['cognitive_focus'] ?? 0;
-    double strategy = scores['strategic_prioritization'] ?? 0;
-    double stress = scores['stress_resilience'] ?? 0;
-    double leadership = scores['leadership_impact'] ?? 0;
-
-    // Profilin Ana Çerçevesi
-    if (focus > 75 && strategy > 75) {
-      insights.add("Aday, kompleks sistem bilgileriyle çalışırken yüksek düzeyde odaklanabiliyor. Organizasyonel hedefleri bireysel konuların önünde tutarak sistem bütünlüğünü koruma eğiliminde.");
-    } else if (focus < 50) {
-      insights.add("Adayın çevresel uyaranlara (çeldiricilere) olan duyarlılığı, analitik süreçleri bölme riski taşıyor. Derin odaklanma gerektiren görevlerde sıkıntı yaşayabilir.");
-    } else {
-      insights.add("Bilişsel kapasitesi ve hedef önceliklendirmesi standartların içinde, dengeli bir performans gösteriyor.");
-    }
-
-    // Kriz Yönetimi Derin Analizi
-    if (flags.contains('analitik_paralizi')) {
-      insights.add("Ancak, şiddetli kriz anlarında saniye bazlı ciddi bir 'analitik paralizi' (karar donması) yaşamaktadır. Acil müdahale gerektiren roller için risk teşkil eder.");
-    } else if (stress > 75) {
-      insights.add("Kriz anlarında (baskı altında ve kısıtlı sürede) soğukkanlılığını olağanüstü koruyarak doğru mantıksal seçimleri yapabiliyor.");
-    } else if (flags.contains('dürtüsel_karar_alma_riski')) {
-      insights.add("Stres altında dürtüsel davranma ve panik (hatalı/rastgele tuşlama) eğilimi gözlemlenmiştir.");
-    }
-
-    // Liderlik ve Takım Dinamiği
-    if (flags.contains('makyavelist_eğilimler') || flags.contains('otoriter_kontrol_ihtiyacı')) {
-      insights.add("Takım yönetiminde fazlasıyla otoriter, kontrolü elinde tutmak isteyen ve mikro-yönetime kayan bir profil çiziyor. Ekip üyelerinde tükenmişlik yaratma potansiyeli vardır.");
-    } else if (flags.contains('hizmetkar_liderlik_potansiyeli') && leadership > 70) {
-      insights.add("Psikolojik olarak güvenli bir alan yaratmada son derece başarılı. Hataları bağışlayıp ekibi sürece dahil eden, güçlü bir delegasyon (yetki devri) ve takım koçu zihniyetine sahip.");
-    } else if (flags.contains('değer_tutarsızlığı_uyarısı')) {
-      insights.add("Sözel ifadeleri (örn: işbirlikçi yaklaşım) ile kriz anındaki yaptırımları (örn: anında cezalandırma) arasında tutarsızlıklar saptanmıştır. Söylem-eylem uyumu sorunlu olabilir.");
-    }
-
-    if (flags.contains('dışsal_denetim_odağı_(savunmacı)')) {
-      insights.add("Başarısızlıklarda faturayı dış koşullara veya takıma kesme (savunmacı yapı) yatkınlığı göstermektedir.");
-    } else if (flags.contains('öz_farkındalık_ve_içsel_denetim')) {
-      insights.add("Olayların sorumluluğunu içselleştirerek, öz-farkındalığı yüksek bir profesyonellik sergilemektedir.");
-    }
-
-    if (insights.isEmpty) {
-      return "Genel tabloda extrem sapmalar göstermeyen, olağan ve istikrarlı bir çalışan profili. Uç değerlerin olmaması, operasyonel işlerde güvenilir bir rutin vadeder.";
-    }
-
-    return insights.join(" ");
-  }
-
-  // --- RADAR CHART CALCULATIONS ---
-
-  double _calculateTrustScore(List<Decision> decisions, List<ChapterMetric> metrics) {
-    double score = 50.0;
-    final d12 = decisions.where((d) => d.chapterId.contains('12')).firstOrNull;
-    final d13 = decisions.where((d) => d.chapterId.contains('13')).firstOrNull;
+    if (flags.isEmpty) return "Henüz yeterli analiz verisi toplanmadı. Test süreci devam ediyor.";
     
-    if (d12 != null && d12.choiceId.contains('pardon')) score += 25.0; // Hatayı tolere etme
-    if (d13 != null && d13.choiceId.contains('delegate')) score += 25.0; // Yetki devri
+    String summary = "Adayın klinik değerlendirme özeti: ";
+    if (flags.contains("Stratejik Orkestrasyon")) summary += "Kriz anında yüksek orkestrasyon kabiliyeti sergiledi. ";
+    if (flags.contains("Analitik Çeviklik")) summary += "Bilişsel adaptasyon hızı üst düzeyde. ";
+    if (flags.contains("Adaptif Öğrenme")) summary += "Hatalarından anlık ders çıkarabilen bir yapısı var. ";
+    if (flags.contains("Operasyonel Sürdürülebilirlik")) summary += "Kurumsal altyapı ve sürdürülebilirlik odaklı. ";
+    if (flags.contains("İnsan Sermayesi ve Esenlik")) summary += "İnsan kaynağını ve ekip esenliğini önceliğe alıyor. ";
+    if (flags.contains("Paydaş Yönetimi ve İletişim")) summary += "Stratejik koordinasyon ve paydaş iletişimi odaklı. ";
+    if (flags.contains("Tünel Vizyonu")) summary += "Baskı altında odağı daralarak feda eylemlerinde bulunabilir. ";
+    if (flags.contains("Bilişsel Blokaj") || flags.contains("Karar Paralizi")) summary += "Yoğun stres altında karar verme felci görüldü. ";
     
-    return score.clamp(0, 100);
-  }
+    // Bölüm 3 (Parazitler) Eklemeleri
+    if (flags.contains("Hiper-Odak")) summary += "Çok yüksek işlem hızı ve odaklanma kapasitesine sahip. ";
+    if (flags.contains("Metodik Haritalama")) summary += "Kaotik veri setlerini önce analiz edip sonra aksiyona geçiyor. ";
+    if (flags.contains("Bilişsel Filtreleme")) summary += "Dış uyaranları (gürültü) süzme yetisi oldukça güçlü. ";
+    if (flags.contains("Bilişsel Toparlanma Hızı")) summary += "Kesintilerin ardından işine çok hızlı geri dönebiliyor. ";
+    if (flags.contains("Hafıza Hassasiyeti")) summary += "Baskı altında dahi veri ve bilgi güvenilirliği üst düzeyde. ";
+    if (flags.contains("Dürtüsel Refleks")) summary += "Hızlı tepki verme güdüsü bazen kontrolsüzlüklere yol açabilir. ";
+    if (flags.contains("Odak Erozyonu") || flags.contains("Multitasking Kaygısı")) summary += "Çoklu uyaran ve multitasking durumunda ciddi performans kaybı yaşıyor. ";
+    
+    // Bölüm 4 (Karanlık Koridorlar) Eklemeleri
+    if (flags.contains("Ar-Ge Koruyucusu")) summary += "Gelecek vizyonunu ve inovasyonu bütçe kısıtlamalarına rağmen koruma eğiliminde. ";
+    if (flags.contains("Çalışan Hakları Savunucusu")) summary += "Kriz anlarında insan sermayesini ve çalışan esenliğini birincil değer olarak görüyor. ";
+    if (flags.contains("ESG / Vizyon Bilinci")) summary += "Kurumsal imajı ve sürdürülebilirliği kriz anında dahi öncelikli kale olarak tutuyor. ";
+    if (flags.contains("Özgüvenli Karar")) summary += "Etik sorumluluk alırken sergilediği netlik ve kararlılık üst düzeyde. ";
+    if (flags.contains("Bilişsel Çalkantı")) summary += "Zorlu kararlarda yüksek içsel çatışma ve tereddüt yaşıyor. ";
+    if (flags.contains("Yüzeysel Bakış")) summary += "Detayları ve paydaş etkilerini tam analiz etmeden dürtüsel kararlar verebilir. ";
 
-  double _calculateFeedbackScore(List<Decision> decisions, List<ChapterMetric> metrics) {
-    double score = 40.0;
-    final d11 = decisions.where((d) => d.chapterId.contains('11')).firstOrNull;
-    final d9 = decisions.where((d) => d.chapterId.contains('9')).firstOrNull;
-    
-    if (d11 != null && d11.choiceId.contains('collaborative')) score += 30.0; // Diyaloga açıklık
-    if (d9 != null && d9.choiceId.contains('internal')) score += 30.0; // Öz-eleştiri/Sorumluluk
-    
-    return score.clamp(0, 100);
-  }
+    // Bölüm 5 (Reaktör Krizi) Eklemeleri
+    if (flags.contains("Kognitif Kaçınma / Protokol İhlali")) summary += "Zorlu görevlerden kaçarak fevri ve kuralsız sonuç alma güdüsüne sahip. ";
+    if (flags.contains("Bilgi Boşluğu Doldurma (Hevristik)")) summary += "Bağlamı tam okumadan tahmin yürüterek karar veriyor. ";
+    if (flags.contains("Metodik Veri Süzme") || flags.contains("Metodik Regülasyon")) summary += "Büyük veri yığınları arasından en doğru bilgiyi sabırla süzebiliyor. ";
+    if (flags.contains("Dürtüsel Yanılgı")) summary += "Odak analiz yapmak yerine ilk dikkat çeken veriye refleksif olarak atlıyor. ";
+    if (flags.contains("Hevristik Deneme Döngüsü")) summary += "Sistematik çalışmak yerine kaba kuvvet ve rastgele tahminlerle ilerlemeye yatkın. ";
+    if (flags.contains("Akut Karar Paralizisi")) summary += "Kriz anında inisiyatif alamayarak donma tepkisi veriyor. ";
 
-  double _calculateInitiativeScore(List<Decision> decisions, List<ChapterMetric> metrics) {
-    double score = 30.0;
-    final c1 = metrics.where((m) => m.chapterId.contains('1')).firstOrNull;
-    final c8 = decisions.where((d) => d.chapterId.contains('8')).firstOrNull;
-    
-    if (c1 != null && c1.totalTimeMs < 8000) score += 35.0; // Erken aksiyon
-    if (c8 != null && c8.choiceId.contains('mask')) score += 35.0; // Proaktif önlem
-    
-    return score.clamp(0, 100);
-  }
+    // Bölüm 6 (Alarm Yorgunluğu) Eklemeleri
+    if (flags.contains("Erken Karar / Alarm Yorgunluğu Zafiyeti")) summary += "Yoğun stres karşısında analiz yapmadan, durumdan anında kaçınma refleksi gösteriyor. ";
+    if (flags.contains("Dengeli / Hesaplanmış Reaksiyon")) summary += "Korkutucu durumları sindirip veriye dayalı bilinçli reaksiyon üretebiliyor. ";
+    if (flags.contains("Akut Motor Panik")) summary += "Duyusal uyaranların aşırılığı karşısında paniğe kapılıp fiziksel dürtüsel davranabiliyor. ";
+    if (flags.contains("Soğukkanlı Kriz Gözlemcisi")) summary += "Göz korkutan kaos atmosferlerinde dahi fiziksel sükunetini koruyabiliyor. ";
+    if (flags.contains("Bilgi Algısı İptali / Körlük Kararı")) summary += "Rahatsız edici şirket gerçeklerini öğrenmektense duyarsızlaşmayı veya izole olmayı seçebiliyor. ";
+    if (flags.contains("Gerçeklik Metaneti / Şeffaflık")) summary += "Kendi konforuna mal olsa dahi, açık şeffaf bilgi erişimini ve gerçekleri izlemeyi savunuyor. ";
 
-  double _calculateTeamImpact(List<Decision> decisions, List<ChapterMetric> metrics) {
-    double score = 35.0;
-    final d10 = decisions.where((d) => d.chapterId.contains('10')).firstOrNull;
-    final d13 = decisions.where((d) => d.chapterId.contains('13')).firstOrNull;
-    
-    if (d10 != null && (d10.choiceId.contains('elara') || d10.choiceId.contains('kael'))) score += 30.0; // Liderlik tercihi yapma
-    if (d13 != null && d13.choiceId.contains('delegate')) score += 35.0; // Takımı güçlendirme
-    
-    return score.clamp(0, 100);
+    // Bölüm 7 (Sistemsel Çöküş) Eklemeleri
+    if (flags.contains("Derin Analitik Odak")) summary += "Son derece yoğun gürültü ve kaos ortamında manipüle olmadan, asıl hedeflenen veriyi analiz edip çekip çıkartabiliyor. ";
+    if (flags.contains("Şanslı Dürtüsellik")) summary += "Karmaşık senaryolarda mantıksal analiz yerine şansını deneyerek riskli ve dürtüsel kararlar alabiliyor. ";
+    if (flags.contains("Kör Aksiyon / Dürtüsel Panik")) summary += "Problemi okumaktan ve anlamaktan imtina ederek, dürtüsel panikle hızlı ve hatalı çözümlere atlıyor. ";
+    if (flags.contains("Bilişsel Kilitlenme (Bölüm 7)")) summary += "Yoğun stres ve kaotik bilgi seli karşısında risk / inisiyatif almaktan korkarak eylemsiz donakalıyor. ";
+
+    // Bölüm 8 (Dış Gövde Çatlağı) Eklemeleri
+    if (flags.contains("Hesaplanmış Akut Müdahale")) summary += "Ani krizlerde kahramanlık fantezisine kapılmadan, prosedürel güvenliği sağlayarak soğukkanlı müdahale edebiliyor. ";
+    if (flags.contains("Gecikmeli Güvenlik")) summary += "Şok anında tereddüt yaşasa da nihayetinde doğru güvenlik protokolünü işletmeyi başarıyor. ";
+    if (flags.contains("Dürtüsel Kahramanlık / Şehitlik Eğilimi")) summary += "Fiziksel yetersizliklerini göz ardı edip, hızlı ama ölümcül bir kurtarıcı sendromuyla kuralları çiğnemektedir. ";
+    if (flags.contains("Akut Şok Kilitlenmesi")) summary += "Ani ve devasa acil durum şoklarında tamamen donakalarak inisiyatif ve hayatta kalma refleksini yitirmektedir. ";
+
+    // Bölüm 9 (Enkazın Ardından) Eklemeleri
+    if (flags.contains("Sistemik Öz-Eleştiri")) summary += "Başarısızlık sonrası hatayı rasyonel biçimde kabul edip kendi stratejilerini objektif bir dille sorgulayabiliyor. ";
+    if (flags.contains("Adaptif Öğrenme Odağı")) summary += "Krizlerden anında ders çıkarıp esneklik (Growth Mindset) gösteriyor ve değişime açık kalabiliyor. ";
+    if (flags.contains("Aşırı Öz-Yıkım / Suçluluk Melankolisi")) summary += "Sorumluluğu üzerine alsa da toksik seviyede duygusal acı çekerek kendi özgüvenini kalıcı olarak zedeliyor. ";
+    if (flags.contains("Yüzeysel & Taktiksel Pişmanlık")) summary += "Hatanın kök nedenine inmek yerine, başarısızlığını sadece o anki geçici bir taktiksel dikkat kaybıyla sınırlıyor. ";
+    if (flags.contains("Mazeretçi Rasyonalizasyon")) summary += "Suçu kibar ve rasyonel bir mantık çerçevesine oturtarak çevresel faktörlere (dışsal) atma çabasında. ";
+    if (flags.contains("Kaderci Öğrenilmiş Çaresizlik")) summary += "Başarısızlığın zaten kaçınılmaz olduğunu savunarak çaba göstermenin anlamsızlaştığı bir öğrenilmiş çaresizlik yaşıyor. ";
+    if (flags.contains("Açık Kurban Psikolojisi")) summary += "Gelişime tamamen kapalı kalarak toksik bir kurban sendromuyla suçu doğrudan sisteme ve otoriteye atıyor. ";
+    if (flags.contains("Sorumluluk Reddi (Narsistik Savunma)")) summary += "Kendi kusursuz vizyonunu koruyabilmek uğruna, hatayla olan bağını oldukça agresif tartışmalarla reddediyor. ";
+
+    // Bölüm 10 (Buzdan Çıkan Yüz) Eklemeleri
+    if (flags.contains("Teknik Yetkinlik Temelli Liderlik")) summary += "Ekip seçiminde duygusal uyum yerine teknik uzmanlığı ve performans çıktılarını önceliklendiren rasyonel bir stil sergiliyor. ";
+    if (flags.contains("Sosyal Uyum Temelli Liderlik")) summary += "Başarıyı bireysel yetenekten ziyade ekip sinerjisi ve sosyal uyumda arayan, yapıcı ve bütünleştirici bir liderlik tarzına sahip. ";
+    if (flags.contains("Metodik Veri İnceleme")) summary += "Gelecek planlamasında aday dosyalarını ve verileri derinlemesine inceleyerek risk analizi yapma eğiliminde. ";
+    if (flags.contains("Sezgisel Seçim Refleksi")) summary += "Kritik atamalarda temel arketipleri hızla süzüp seri karar verme ve operasyonel çeviklik noktasında inisiyatif alabiliyor. ";
+
+    // Bölüm 11 (İlk Tartışma) Eklemeleri
+    if (flags.contains("Psikolojik Güvenlik Mimarı")) summary += "Çatışma yönetiminde yapıcı bir diyalog zeminini koruyarak takım motivasyonunu yüksek tutuyor. ";
+    if (flags.contains("Duygusuz Rasyonalizasyon")) summary += "Fikir ayrılıklarında empatiden ziyade saf mantık ve veri setlerine odaklanan, soğuk ama tutarlı bir iletişim dili kullanıyor. ";
+    if (flags.contains("Hiyerarşik Komuta ve Karar Keskinliği")) summary += "Kriz anlarında hiyerarşiyi ve emir-komuta zincirini ön planda tutan otoriter bir liderlik sergiliyor. ";
+    if (flags.contains("Duygusal Manipülasyon ve Toksik Etki")) summary += "Hedefe ulaşmak için baskı ve suçluluk duygusunu araç olarak kullanan yüksek riskli iletişim reflekslerine sahip. ";
+    if (flags.contains("Pasif-Agresif Karar Felci")) summary += "Bakım tüneli gibi kritik eşiklerde karar vermekte zorlanarak inisiyatifi başkasına devrediyor. ";
+
+    // Bölüm 12 (Partnerin Hatası) Eklemeleri
+    if (flags.contains("Gelişimsel Liderlik (Hata Toleransı)")) summary += "Başkalarının hatalarına karşı toleranslı; cezalandırmak yerine geliştirmeye odaklı koçluk vizyonuna sahip. ";
+    if (flags.contains("Kuralcı ve Soğuk Adalet")) summary += "Hata durumlarında duyguları dışlayıp adaleti sadece kural ve prosedürler üzerinden işletmeyi seçiyor. ";
+    if (flags.contains("Cezalandırıcı Otoriter Yaklaşım")) summary += "Hatalara karşı sıfır toleransı olan ve cezalandırıcı otoriteyi bir disiplin aracı olarak kullanan sert bir yapıda. ";
+
+    // Bölüm 13 (Güven Testi) Eklemeleri
+    if (flags.contains("Güven Odaklı Delegasyon")) summary += "Ekibi için risk alabilen ve en kritik anlarda dahi yetki devretme (delegasyon) cesareti gösteren yüksek güvenli bir liderdir. ";
+    if (flags.contains("Koruyucu Mikro-Yönetim")) summary += "Ekibini koruma güdüsüyle veya risk kaçınma refleksiyle kritik işleri kendisi üstlenen mikro-yönetimci bir yönetim dili sergiliyor. ";
+    if (flags.contains("Suçlayıcı ve Toksik Güvensizlik")) summary += "Geçmiş hataları kriz anında bir silah olarak kullanarak ekibiyle olan güven bağını zedeleyen suçlayıcı bir tutum sergiliyor. ";
+
+    return summary;
   }
 }

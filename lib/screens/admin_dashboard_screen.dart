@@ -35,8 +35,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final list = await _db.getAllCandidates();
       setState(() {
         _candidates = list;
-        if (list.isNotEmpty && _selectedCandidate == null) {
-          _selectCandidate(list.first);
+        // Auto-select removed to keep the dashboard empty initially
+        if (list.isEmpty) {
+          _selectedCandidate = null;
+          _selectedMetrics = [];
+          _selectedDecisions = [];
         }
       });
     } catch (e) {
@@ -84,15 +87,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontWeight: FontWeight.bold, letterSpacing: 2),
         ),
         actions: [
-          IconButton(
-            tooltip: "Demo Verisi Üret",
-            icon: const Icon(Icons.add_chart, color: AppTheme.neonCyan),
-            onPressed: () async {
-              await _db.seedMockData();
-              _loadCandidates();
-            },
-          ),
-          IconButton(
+                    IconButton(
             tooltip: "Tüm Verileri Temizle",
             icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent),
             onPressed: () => _confirmClearAll(),
@@ -132,7 +127,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 
                 Expanded(
                   child: _selectedCandidate == null 
-                    ? const Center(child: Text("BİR ADAY SEÇİNİZ", style: TextStyle(color: Colors.white24)))
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.radar_outlined, color: AppTheme.neonCyan.withOpacity(0.05), size: 100),
+                            const SizedBox(height: 20),
+                            Text("SİSTEM BEKLEMEDE // ANALİZ İÇİN BİR ADAY SEÇİNİZ", 
+                              style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 13, letterSpacing: 2)),
+                            const SizedBox(height: 10),
+                            Text("PROTOKOL_HAZIR: VERİ OKUMA İZNİ BEKLENİYOR",
+                              style: GoogleFonts.sourceCodePro(color: Colors.white12, fontSize: 9)),
+                          ],
+                        ),
+                      )
                     : _buildAnalyticsDashboard(isMobile),
                 ),
               ],
@@ -150,14 +158,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Text("VERİTABANI BOŞ", style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 18)),
           Text("HENÜZ TAMAMLANMIŞ TEST BULUNAMADI", style: GoogleFonts.sourceCodePro(color: Colors.white10, fontSize: 12)),
           const SizedBox(height: 40),
-          TextButton(
+          ElevatedButton.icon(
             onPressed: () async {
+              setState(() => _isLoading = true);
               await _db.seedMockData();
-              _loadCandidates();
+              await _loadCandidates();
             },
-            child: Text(
-              "// DEMO VERİSİ ÜRET //",
-              style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 14),
+            icon: const Icon(Icons.download, color: Colors.black),
+            label: Text("DEMO VERİ YÜKLE", style: GoogleFonts.rajdhani(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.neonCyan,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],
@@ -260,30 +271,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           _buildCandidateHero(isMobile, scores, archetype),
           const SizedBox(height: 25),
           
-          // YENİ: YÖNETİCİ ÖZETİ
           _buildExecutiveSummary(scores, flags),
-          const SizedBox(height: 40),
+          const SizedBox(height: 25),
           
-          if (isMobile) ...[
-            _buildCrisisGauge(scores),
-            const SizedBox(height: 30),
-            _buildTeamDynamicsRadar(scores),
-            const SizedBox(height: 30),
-            _buildEfficiencyBar(scores),
-          ] else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _buildCrisisGauge(scores)),
-                const SizedBox(width: 20),
-                Expanded(child: _buildTeamDynamicsRadar(scores)),
-                const SizedBox(width: 20),
-                Expanded(child: _buildEfficiencyBar(scores)),
-              ],
-            ),
-          
-          const SizedBox(height: 40),
           _buildFlagsSection(flags),
+          const SizedBox(height: 40),
+          
+          // BÖLÜM BAZLI ANALİZ RAPORLARI
+          _buildChapter1Report(isMobile),
+          _buildChapter2Report(isMobile),
+          _buildChapter3Report(isMobile),
+          _buildChapter4Report(isMobile),
+          _buildChapter5Report(isMobile),
+          _buildChapter6Report(isMobile),
+          _buildChapter7Report(isMobile),
+          _buildChapter8Report(isMobile),
+          _buildChapter9Report(isMobile),
+          _buildChapter10Report(isMobile),
+          _buildChapter11Report(isMobile),
+          _buildChapter12Report(isMobile),
+          _buildChapter13Report(isMobile),
           
           const SizedBox(height: 40),
           _buildDetailedAnalysis(),
@@ -440,19 +447,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       case 'missedPopups': return 'Kaçırılan Uyarılar';
       case 'symbolMatchErrors': return 'Eşleştirme Hataları';
       case 'failedAttempts': return 'Hatalı Denemeler';
-      case 'readingTime': return 'Okuma/Analiz Süresi';
+      case 'readingTime': return 'Okuma Süresi (Eski)';
+      case 'readingTimeMs': return 'İnceleme Süresi';
+      case 'usedDecoy': return 'Tuzak Veri Seçildi';
+      case 'result': return 'Görev Eylemi';
+      case 'actualMemoryErrors': return 'Gerçek Unutma/Hata';
+      case 'avgRecoveryTimeMs': return 'Parazit Sonrası Toparlanma';
+      case 'seenIndicesCount_8': return 'İlk 8 Hamle Derinliği';
+      case 'selectedArea': return 'Feda Edilen Kurumsal Alan';
+      case 'revokedConfirmations': return 'Karar Tereddütü (Vazgeçme)';
+      case 'navigationSwitches': return 'Alanlar Arası Dağılım';
+      case 'viewDurations': return 'Alanlarda Harcanan İnceleme Süreleri';
+      case 'totalDurationMs': return 'Kriz Süresi';
       case 'mutingSpeed': return 'Susturma Refleksi';
       case 'reactionTime': return 'Reaksiyon Süresi';
       case 'actionDelay': return 'Eylem Gecikmesi';
       case 'tile_flips': return 'Kutu Çevirme Sayısı';
       case 'box_closing_strategy': return 'Kutu Kapama Stratejisi';
-      case 'missedPopups': return 'Kaçırılan Uyarılar';
-      case 'symbolMatchErrors': return 'Eşleştirme Hataları';
       case 'negotiationSteps': return 'Müzakere Adımı';
       case 'finalAgreement': return 'Uzlaşı Sonucu';
       case 'forgiveDelay': return 'Karar Ağırlığı/Gecikmesi';
       case 'delegationRatio': return 'Yetki Devri Oranı';
       case 'readDuration': return 'Metin İnceleme Süresi';
+      case 'finalDecision': return 'Final Kararı';
       default: return key.replaceAll('_', ' ').toTurkishUpperCase();
     }
   }
@@ -467,270 +484,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildCandidateInfo(archetype),
-          if (!isMobile) _buildMiniScore(scores['consistency_index'] ?? 0, "TUTARLILIK"),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("ADAY_KODU: ${_selectedCandidate!.id}", style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 10)),
+              Text(_selectedCandidate!.name.toUpperCase(), style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+              Text("ARKETİP: $archetype", style: GoogleFonts.sourceCodePro(color: Colors.white30, fontSize: 10)),
+            ],
+          ),
+          if (!isMobile) 
+            Text("${(scores['section1_adaptability'] ?? 0).toInt()}%", 
+              style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 28, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildCandidateInfo(String archetype) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("ADAY_KODU: ${_selectedCandidate!.id}", style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 10)),
-        Text(_selectedCandidate!.name.toUpperCase(), style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-        Text("DURUM: ANALİZ TAMAMLANDI // ARKETİP: $archetype", 
-          style: GoogleFonts.sourceCodePro(color: Colors.white30, fontSize: 10)),
-      ],
-    );
-  }
-
-  Widget _buildMiniScore(double score, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text("${score.toInt()}%", style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 18, fontWeight: FontWeight.bold)),
-        Text(label, style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 8)),
-      ],
-    );
-  }
-
-  Widget _buildCrisisGauge(Map<String, double> scores) {
-    final score = scores['stress_resilience'] ?? 0;
-    final color = score > 70 ? Colors.greenAccent : (score > 40 ? Colors.orangeAccent : Colors.redAccent);
     
-    return Container(
-      height: 320,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.01),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("KRİZ YÖNETİMİ", style: GoogleFonts.rajdhani(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
-              const Icon(Icons.bolt, color: Colors.white10, size: 12),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 180,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                PieChart(
-                  PieChartData(
-                    sections: [
-                      PieChartSectionData(value: score, color: color, radius: 12, showTitle: false),
-                      PieChartSectionData(value: 100 - score, color: Colors.white.withOpacity(0.05), radius: 12, showTitle: false),
-                    ],
-                    startDegreeOffset: 270,
-                    centerSpaceRadius: 55,
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text("${score.toInt()}%", style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
-                    Text("SÜKUNET", style: GoogleFonts.sourceCodePro(color: color.withOpacity(0.7), fontSize: 9, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 15),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(4)),
-            child: Text("HATA TOPARLANMA: ${score > 60 ? '0.8s' : '2.4s'}", 
-              style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 9)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTeamDynamicsRadar(Map<String, double> scores) {
-    return Container(
-      height: 320,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.01),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("TAKIM DİNAMİĞİ", style: GoogleFonts.rajdhani(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
-              const Icon(Icons.people_outline, color: Colors.white10, size: 12),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 180,
-            child: RadarChart(
-              RadarChartData(
-                titlePositionPercentageOffset: 0.18,
-                dataSets: [
-                  RadarDataSet(
-                    fillColor: Colors.purpleAccent.withOpacity(0.15),
-                    borderColor: Colors.purpleAccent,
-                    entryRadius: 3,
-                    borderWidth: 2,
-                    dataEntries: [
-                      RadarEntry(value: scores['team_impact'] ?? 30),
-                      RadarEntry(value: scores['feedback_score'] ?? 40),
-                      RadarEntry(value: scores['initiative_score'] ?? 30),
-                      RadarEntry(value: scores['trust_score'] ?? 50),
-                    ],
-                  ),
-                ],
-                radarBackgroundColor: Colors.transparent,
-                gridBorderData: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
-                radarBorderData: const BorderSide(color: Colors.transparent),
-                tickBorderData: const BorderSide(color: Colors.transparent),
-                ticksTextStyle: const TextStyle(color: Colors.transparent),
-                getTitle: (index, angle) {
-                  // Inisiyatif (bottom label) ters yazılmasın diye 180 derece olduğu durumda düzeltiyoruz
-                  final double adjustedAngle = (angle > 90 && angle < 270) ? angle + 180 : angle;
-                  return RadarChartTitle(
-                    text: _getRadarLabel(index), 
-                    angle: adjustedAngle,
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 30),
-          _buildRadarLegend(),
-        ],
-      ),
-    );
-  }
-
-  String _getRadarLabel(int index) {
-    switch (index) {
-      case 0: return 'ETKİ';
-      case 1: return 'GERİ BİLDİRİM';
-      case 2: return 'İNİSİYATİF';
-      case 3: return 'GÜVEN';
-      default: return '';
-    }
-  }
-
-  Widget _buildRadarLegend() {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 5,
-      children: [
-        _buildLegendItem('ETKİ', 'Liderlik ve stratejik kararların kurum üzerindeki ağırlığı.'),
-        _buildLegendItem('GERİ BİLDİRİM', 'Diyaloğa açıklık ve öz-eleştiri kapasitesi.'),
-        _buildLegendItem('İNİSİYATİF', 'Kriz anında proaktif aksiyon alma hızı.'),
-        _buildLegendItem('GÜVEN', 'Yetki devri ve hata toleransı (Delegasyon).'),
-      ],
-    );
-  }
-
-  Widget _buildLegendItem(String label, String description) {
-    return Tooltip(
-      message: description,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: Colors.black, border: Border.all(color: AppTheme.neonCyan)),
-      textStyle: GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(border: Border.all(color: Colors.white10), borderRadius: BorderRadius.circular(2)),
-        child: Text(label, style: GoogleFonts.rajdhani(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
-  Widget _buildEfficiencyBar(Map<String, double> scores) {
-    final focus = scores['cognitive_focus'] ?? 0;
-    final strategy = scores['strategic_prioritization'] ?? 0;
-    
-    return Container(
-      height: 320,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.01),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("VERİMLİLİK ANALİZİ", style: GoogleFonts.rajdhani(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
-              const Icon(Icons.analytics_outlined, color: Colors.white10, size: 12),
-            ],
-          ),
-          const SizedBox(height: 25),
-          SizedBox(
-            height: 180,
-            child: BarChart(
-              BarChartData(
-                barTouchData: BarTouchData(
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (_) => Colors.black.withOpacity(0.8),
-                    tooltipBorder: const BorderSide(color: AppTheme.neonCyan, width: 1),
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      String label = "";
-                      String desc = "";
-                      if (groupIndex == 0) { label = "ODAK"; desc = "Bilişsel yük altında dikkati koruma ve gürültüyü filtreleme yetisi."; }
-                      else if (groupIndex == 1) { label = "STRATEJİ"; desc = "Hedef odaklılık, kaynak yönetimi ve uzun vadeli planlama."; }
-                      else { label = "AKIŞ"; desc = "Karar ve eylem arasındaki senkronizasyon ve bilişsel hız."; }
-                      return BarTooltipItem(
-                        "$label: ${rod.toY.toInt()}%",
-                        GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 10),
-                      );
-                    },
-                  ),
-                ),
-                barGroups: [
-                  _buildBarGroup(0, focus, AppTheme.neonCyan),
-                  _buildBarGroup(1, strategy, Colors.amberAccent),
-                  _buildBarGroup(2, (focus + strategy) / 2, Colors.tealAccent),
-                ],
-                borderData: FlBorderData(show: false),
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  show: true,
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true, 
-                      getTitlesWidget: (v, m) {
-                        final style = GoogleFonts.rajdhani(color: Colors.white24, fontSize: 8, fontWeight: FontWeight.bold);
-                        if (v == 0) return Text("ODAK", style: style);
-                        if (v == 1) return Text("STRATEJİ", style: style);
-                        return Text("AKIŞ", style: style);
-                      }
-                    )
-                  ),
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                alignment: BarChartAlignment.spaceAround,
-                maxY: 100,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
-      ),
-    );
-  }
-
+  
 
   Widget _buildExecutiveSummary(Map<String, double> scores, List<String> flags) {
     final summary = _engine.getExecutiveSummary(scores, flags);
@@ -761,6 +532,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  Color _getFlagColor(String flag) {
+    final f = flag.toLowerCase();
+    
+    // YÜKSEK (Kırmızı) Risk Taşıyanlar:
+    if (f.contains('uyarı') || f.contains('risk') || f.contains('dürtüsel') || f.contains('reaktif') || f.contains('paralizi') || f.contains('zafiyeti') || f.contains('bariyeri') || f.contains('otoriter') || f.contains('makyavelist') || f.contains('savunmacı') || f.contains('kararsızlığı') || f.contains('deneme_yanılma') || f.contains('kaçınma') || f.contains('cezalandırıcı') || f.contains('blokaj') || f.contains('erozyon') || f.contains('tünel vizyonu') || f.contains('işlem ataleti') || f.contains('kaygısı') || f.contains('yüzeysel') || f.contains('ihlal') || f.contains('yanılgı') || f.contains('döngü')) {
+      return Colors.redAccent;
+    }
+    
+    // ORTA (Turuncu/Sarı) Gelişim Alanı Taşıyanlar:
+    if (f.contains('rastgele başarı') || f.contains('örüntü') || f.contains('dengeli analizci') || f.contains('bilişsel efor') || f.contains('dürtüsel refleks') || f.contains('çalkantı') || f.contains('kural esnetme')) {
+      return Colors.orangeAccent;
+    }
+    
+    // POZİTİF (Yeşil) Yetkinlikler:
+    return Colors.greenAccent;
+  }
+
   Widget _buildFlagsSection(List<String> flags) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -771,23 +559,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           spacing: 10,
           runSpacing: 10,
           children: flags.map((f) {
-            final isNegative = f.contains('uyarı') || f.contains('risk') || f.contains('dürtüsel') || f.contains('reaktif');
+            final color = _getFlagColor(f);
+            
             return Tooltip(
               message: _getFlagDescription(f),
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.black, border: Border.all(color: isNegative ? Colors.redAccent : Colors.greenAccent)),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(color: Colors.black, border: Border.all(color: color)),
               textStyle: GoogleFonts.inter(color: Colors.white, fontSize: 12),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  border: Border.all(color: isNegative ? Colors.redAccent.withOpacity(0.5) : Colors.greenAccent.withOpacity(0.5)),
-                  color: isNegative ? Colors.redAccent.withOpacity(0.05) : Colors.greenAccent.withOpacity(0.05),
+                  border: Border.all(color: color.withOpacity(0.5)),
+                  color: color.withOpacity(0.05),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(isNegative ? Icons.warning_amber_rounded : Icons.check_circle_outline, 
-                      color: isNegative ? Colors.redAccent : Colors.greenAccent, size: 12),
+                    Icon(color == Colors.redAccent ? Icons.warning_amber_rounded : (color == Colors.orangeAccent ? Icons.info_outline : Icons.check_circle_outline), 
+                      color: color, size: 12),
                     const SizedBox(width: 8),
                     Text(f.replaceAll('_', ' ').toTurkishUpperCase(), 
                       style: GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -799,22 +589,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       ],
     );
-  }
-
-  String _getFlagDescription(String flag) {
-    if (flag.contains('analitik_paralizi')) return "Yoğun stres anında karar verme yetisinde saniye bazlı donma ve aksiyon alamama durumu.";
-    if (flag.contains('odak_erozyonu')) return "Çevresel faktörlerin ve 'gürültünün' ana iş odağını ciddi şekilde kesintiye uğratması.";
-    if (flag.contains('dürtüsel_karar')) return "Analiz yapmadan, sadece reaksiyon olarak verilen hızlı ve hatalı karar verme eğilimi.";
-    if (flag.contains('otoriter_kontrol')) return "Görevleri delege etmek yerine tüm kontrolü kendinde tutma ve mikro-yönetim eğilimi.";
-    if (flag.contains('makyavelist')) return "Kurumsal hedefler için etik dengeleri göz ardı edebilme ve pragmatik yaklaşım.";
-    if (flag.contains('hizmetkar_liderlik')) return "Ekip üyelerini destekleyen, hataları öğretme fırsatı gören ve psikolojik güvenlik yaratan liderlik.";
-    if (flag.contains('stratejik_önceliklendirme_zafiyeti')) return "Kritik sistemler (örn: Reaktör) risk altındayken ikincil konularla vakit kaybetme.";
-    if (flag.contains('mükemmeliyetçilik')) return "Tüm kaynakları eşit ve en ideal seviyede tutma çabası; yüksek operasyonel titizlik.";
-    if (flag.contains('öz_farkındalık')) return "Hataların sorumluluğunu üstlenme ve içsel denetim mekanizmasının güçlü olması.";
-    if (flag.contains('stratejik_sorun_giderme')) return "Minimum deneme ile karmaşık sistem sorunlarını çözme yetisi; yüksek analitik verimlilik.";
-    if (flag.contains('deneme_yanılma')) return "Stratejik eleme yerine rastgele denemelerle sonuca gitme eğilimi; düşük operasyonel verimlilik.";
-    if (flag.contains('operasyonel_hız_tercihi')) return "Kriz anında tekil işlemler yerine toplu ve hızlı aksiyon alma eğilimi (Bölüm 3).";
-    return "Bilimsel telemetriye dayalı davranışsal gözlem saptanmıştır.";
   }
 
   BarChartGroupData _buildBarGroup(int x, double y, Color color) {
@@ -959,12 +733,707 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       case 'authoritarian': return 'Otoriter/Lider Baskın';
       case 'help_others_unprotected': return 'Fedakar/Başkalarına Yardım';
       case 'mask': return 'Bireyici/Önce Kendi Güvenliği';
-      case 'skip_analysis': return 'Analizi Atla/Hızlı Geç';
-      case 'quarters': return 'Yaşam Alanı Güvenliği';
-      case 'reactor': return 'Füzyon Reaktörü Kararı';
-      case 'comms': return 'İletişim Ünitesi Kararı';
-      case 'oxygen': return 'Oksijen Sistemi Kararı';
+      case 'deactivate': return 'Kriz Modülünü Devre Dışı Bırak';
+      case 'delegate': return 'Yetki Devri (Güven)';
+      case 'self': return 'Bireysel Kontrol / Mikro-Yönetim';
+      case 'distrust': return 'Güvensizlik / Suçlayıcı';
+      case 'delegate': return 'Yetki Devredildi (Güven)';
       default: return id.replaceAll('_', ' ').toTurkishUpperCase();
     }
+  }
+
+  // --- BÖLÜM BAZLI RAPOR WIDGETLARI ---
+
+  Widget _buildChapter1Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 1"));
+    } catch (_) {
+      return const SizedBox(); // Veri yoksa gösterme
+    }
+
+    final flags = _engine.generateFlags([], [metric]);
+    if (flags.isEmpty) flags.add("Analitik Gözlem");
+    String topFinding = flags.first;
+    if (flags.contains("Adaptif Öğrenme")) topFinding = "Adaptif Öğrenme";
+    else if (flags.contains("Analitik Çeviklik")) topFinding = "Analitik Çeviklik";
+
+    bool isPositive = topFinding.contains("ADAPTİF") || topFinding.contains("ÇEVİKLİK") || topFinding.contains("SİSTEMATİK") || topFinding.contains("ÖĞRENME");
+    Color resultColor = isPositive ? Colors.greenAccent : Colors.redAccent;
+
+    // Detaylar
+    final String timeStr = "${(metric.totalTimeMs / 1000).toStringAsFixed(1)} saniye";
+    final timeline = List<dynamic>.from(metric.additionalData?['timeline'] ?? []);
+    final correctAction = timeline.cast<Map<String, dynamic>?>().firstWhere((a) => a?['a'] == 'CORRECT_ANSWER', orElse: () => null);
+    final int trials = timeline.where((a) => a['a'] == 'WRONG_ANSWER').length + (correctAction != null ? 1 : 0);
+    final String status = correctAction != null ? "BAŞARIYLA TAMAMLANDI" : "BİLEMEDEN BİTTİ";
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 1: SOĞUK UYANIŞ",
+      testType: "🔬 BİLİŞSEL ADAPTASYON TESTİ",
+      status: status,
+      isSuccess: correctAction != null,
+      resultColor: resultColor,
+      metric1Label: "Süre",
+      metric1Value: timeStr,
+      metric2Label: "Performans",
+      metric2Value: "$trials hamle",
+      findings: flags,
+      clinicalNote: "Akıcı zeka, kriz anında bilişsel kaynakları aktive edebilme, örüntü yakalama ve hata sonrası toparlanma hızı.",
+      footer: "Bu rapor, adayın kriz anındaki analitik şemaları ve hata sonrası reaksiyon telemetrisi üzerinden üretilmiştir.",
+    );
+  }
+
+  Widget _buildChapter2Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 2"));
+    } catch (_) {
+      return const SizedBox();
+    }
+
+    final flags = _engine.generateFlags([], [metric]);
+    if (flags.isEmpty) return const SizedBox();
+
+    bool isNegative = flags.any((f) => f.contains("Kaygı") || f.contains("Tünel") || f.contains("Paralizi"));
+    Color resultColor = isNegative ? Colors.redAccent : AppTheme.neonCyan;
+
+    final data = metric.additionalData ?? {};
+    final levels = data['final_levels'] as Map? ?? {};
+    final String levelsStr = "R:%${levels['reactor'] ?? 0} | O:%${levels['oxygen'] ?? 0} | İ:%${levels['comms'] ?? 0}";
+    final String switches = "${data['switch_count'] ?? 0} geçiş";
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 2: İLK TRİAJ",
+      testType: "⚖️ ÖNCELİKLENDİRME VE KAYNAK YÖNETİMİ",
+      status: "TAMAMLANDI",
+      isSuccess: true,
+      resultColor: resultColor,
+      metric1Label: "Sistem Sağlığı",
+      metric1Value: levelsStr,
+      metric2Label: "Stres Reaksiyonu",
+      metric2Value: switches,
+      findings: flags,
+      clinicalNote: "Adayın kaos altında Kurum (Reaktör) / İnsan (Oksijen) / Koordinasyon (İletişim) üçgeninde yaptığı stratejik seçimler ve odak kapasitesi.",
+      footer: "Bu rapor, adayın kriz anındaki önceliklendirme hiyerarşisi ve kaynak dağıtım telemetrisi üzerinden üretilmiştir.",
+    );
+  }
+
+  Widget _buildReportContainer({
+    required bool isMobile,
+    required String chapterTitle,
+    required String testType,
+    required String status,
+    required bool isSuccess,
+    required Color resultColor,
+    required String metric1Label,
+    required String metric1Value,
+    required String metric2Label,
+    required String metric2Value,
+    required List<String> findings,
+    required String clinicalNote,
+    required String footer,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(25),
+      margin: const EdgeInsets.only(bottom: 30),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        border: Border.all(color: AppTheme.neonCyan.withOpacity(0.15)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.analytics_outlined, color: AppTheme.neonCyan, size: 18),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(chapterTitle, style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                  Text(testType, style: GoogleFonts.sourceCodePro(color: Colors.purpleAccent.withOpacity(0.7), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                ],
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: (isSuccess ? Colors.greenAccent : Colors.redAccent).withOpacity(0.1),
+                  border: Border.all(color: (isSuccess ? Colors.greenAccent : Colors.redAccent).withOpacity(0.3))
+                ),
+                child: Text(status, style: GoogleFonts.sourceCodePro(color: isSuccess ? Colors.greenAccent : Colors.redAccent, fontSize: 9, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 25),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildReportLine(metric1Label, metric1Value),
+                    const SizedBox(height: 12),
+                    _buildReportLine(metric2Label, metric2Value),
+                  ],
+                ),
+              ),
+              if (!isMobile) const SizedBox(width: 40),
+              if (!isMobile)
+                Expanded(
+                  flex: 3,
+                  child: _buildFindingsList(findings, clinicalNote),
+                ),
+            ],
+          ),
+          if (isMobile) ...[
+            const SizedBox(height: 25),
+            _buildFindingsList(findings, clinicalNote),
+          ],
+          const SizedBox(height: 25),
+          const Divider(color: Colors.white10),
+          const SizedBox(height: 10),
+          Text("// $footer", style: GoogleFonts.sourceCodePro(color: Colors.white10, fontSize: 8)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFindingsList(List<String> findings, String note) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("🧪 KLİNİK BULGU ANALİZİ:", style: GoogleFonts.rajdhani(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        ...findings.map((f) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildSingleFinding(f),
+        )).toList(),
+        const SizedBox(height: 5),
+        const Divider(color: Colors.white10),
+        const SizedBox(height: 10),
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(text: "Bu ölçümleme; ", style: GoogleFonts.inter(color: Colors.white30, fontSize: 10)),
+              TextSpan(text: "$note gibi yetkinlikleri değerlendirmeyi amaçlar.", style: GoogleFonts.inter(color: Colors.white30, fontSize: 10, fontStyle: FontStyle.italic)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSingleFinding(String flag) {
+    final bool isNegative = flag.contains("Kaygı") || flag.contains("Tünel") || flag.contains("Paralizi") || flag.contains("Blokaj") || flag.contains("Dürtüsel") || flag.contains("Tepki") || flag.contains("Erozyonu") || flag.contains("Ataleti") || flag.contains("Yüzeysel");
+    final bool isNeutral = flag.contains("Rastgele") || flag.contains("Örüntü") || flag.contains("Efor") || flag.contains("Refleks") || flag.contains("Analizci") || flag.contains("Çalkantı");
+    
+    final Color color = isNegative 
+      ? Colors.redAccent 
+      : (isNeutral ? (flag.contains("Analizci") ? Colors.yellowAccent : Colors.orangeAccent) : (flag.contains("Orkestrasyon") || flag.contains("Özgüvenli") ? AppTheme.neonCyan : Colors.greenAccent));
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        border: Border(left: BorderSide(color: color, width: 2))
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(flag.toTurkishUpperCase(), style: GoogleFonts.rajdhani(color: color, fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1)),
+          const SizedBox(height: 4),
+          Text(_getFlagDescription(flag), style: GoogleFonts.inter(color: Colors.white.withOpacity(0.7), fontSize: 12, height: 1.4, fontStyle: FontStyle.italic)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportLine(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label.toTurkishUpperCase(), style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 9)),
+        const SizedBox(height: 4),
+        Text(value, style: GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildChapter3Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 3"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    // Klinik Başarı Rengi
+    bool isNegative = flags.any((f) => f.contains("Kaygı") || f.contains("Zafiyeti") || f.contains("Dürtüsel"));
+    Color resultColor = isNegative ? Colors.orangeAccent : Colors.greenAccent;
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 3: PARAZİTLER",
+      testType: "🧠 DİKKAT FİLTRELEME VE HAFIZA DUYARLILIĞI",
+      status: "TAMAMLANDI",
+      isSuccess: true,
+      resultColor: resultColor,
+      metric1Label: "Hafıza Hataları",
+      metric1Value: "${data['actualMemoryErrors'] ?? 0} Kayıp",
+      metric2Label: "Toparlanma Hızı",
+      metric2Value: "${((data['avgRecoveryTimeMs'] ?? 0) / 1000).toStringAsFixed(1)}sn",
+      findings: flags,
+      clinicalNote: "Adayın bilişsel yük altında veri bütünlüğünü koruma kapasitesi ve dış parazitlere (pop-up) karşı reaksiyon hızı.",
+      footer: "Bu rapor, adayın multitasking performansı ve gerçek unutma (actual memory error) telemetrisi baz alınarak üretilmiştir.",
+    );
+  }
+
+  Widget _buildChapter4Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 4"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    // Karar Kalitesi Rengi
+    bool isNegative = flags.any((f) => f.contains("Çalkantı") || f.contains("Yüzeysel"));
+    Color resultColor = isNegative ? Colors.orangeAccent : AppTheme.neonCyan;
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 4: KARANLIK KORİDORLAR",
+      testType: "⚖️ ETİK KARAR VERME VE DEĞER HİYERARŞİSİ",
+      status: "KARAR KAYDEDİLDİ",
+      isSuccess: true,
+      resultColor: resultColor,
+      metric1Label: "Feda Edilen",
+      metric1Value: _translateMetadata(data['selectedArea'] ?? 'Belirsiz'),
+      metric2Label: "Karar Kararlılığı",
+      metric2Value: "${data['revokedConfirmations'] ?? 0} Vazgeçme",
+      findings: flags,
+      clinicalNote: "Adayın kriz anında hangi kurumsal değeri (Ar-Ge, İnsan, ESG) önceliklendirdiği ve kararının arkasında durma kapasitesi.",
+      footer: "Bu rapor, adayın 2-aşamalı onay sürecindeki tereddütleri ve alanlar arası geçiş analitiği baz alınarak üretilmiştir.",
+    );
+  }
+
+  Widget _buildChapter5Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 5"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    bool isNegative = flags.any((f) => f.contains("İhlal") || f.contains("Esnetme") || f.contains("Yanılgı") || f.contains("Döngüsü") || f.contains("Paralizi"));
+    Color resultColor = isNegative ? Colors.orangeAccent : AppTheme.neonCyan;
+
+    final resultStr = data['result'] ?? 'Timeout';
+    final resultTranslated = resultStr == 'Success' ? 'Aksiyon: Doğru Şifre' : (resultStr == 'Bypass' ? 'Aksiyon: Manuel Bypass' : 'Aksiyon: Donma (Zaman Aşımı)');
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 5: REAKTÖR KRİZİ",
+      testType: "☢️ BİLGİ SÜZME VE RİSK YÖNETİMİ",
+      status: "TAMAMLANDI",
+      isSuccess: true,
+      resultColor: resultColor,
+      metric1Label: "Okuma & Kavrama Süresi",
+      metric1Value: "${(((data['readingTimeMs'] as num?) ?? (data['readingTime'] as num?) ?? 0).toDouble() / 1000).toStringAsFixed(1)}sn",
+      metric2Label: "Karar Tipi",
+      metric2Value: resultTranslated,
+      findings: flags,
+      clinicalNote: "Adayın kriz anında, hata yapmadan uzun bir metinden güvenilir veriyi çekme veya kestirme yolu (bypass) tercih etme kognitif süreçleri.",
+      footer: "Bu rapor, adayın zaman baskısı altındaki dürtüselliği ve sahte bayraklara (fake flag) düşme oranı baz alınarak üretilmiştir.",
+    );
+  }
+
+  Widget _buildChapter6Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 6"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    // Negatif bulguları tespit et
+    bool isNegative = flags.any((f) => f.contains("İptali") || f.contains("Zafiyeti") || f.contains("Panik"));
+    Color resultColor = isNegative ? Colors.orangeAccent : AppTheme.neonCyan;
+
+    final resultStr = data['finalDecision'] ?? 'isolate';
+    final resultTranslated = resultStr == 'vigilance' ? 'Gerçeklik (Sistemleri Açık Tut)' : 'İzolasyon (Sensörleri Kör Et)';
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 6: ALARM YORGUNLUĞU",
+      testType: "🔊 DUYUSAL TOLERANS VE KRİZ REAKSİYONU",
+      status: "TAMAMLANDI",
+      isSuccess: true,
+      resultColor: resultColor,
+      metric1Label: "Motor Panik",
+      metric1Value: "${data['panicClicks'] ?? 0} Hatalı İtki",
+      metric2Label: "Sistematik Tercih",
+      metric2Value: resultTranslated,
+      findings: flags,
+      clinicalNote: "Adayın şiddetli duyusal uyaran (sensory overload) altında gösterdiği fiziksel panik seviyesi ve konfor/gözlem ikileminde aldığı stratejik konum.",
+      footer: "Bu rapor, adayın kriz anındaki karar hızı (acelecilik) ve rastgele tıklama oranları baz alınarak üretilmiştir.",
+    );
+  }
+
+  Widget _buildChapter7Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 7"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    // Negatif bulguları tespit et (İçinde "Dürtüsel", "Panik", "Kilitlenme" geçenler)
+    bool isNegative = flags.any((f) => f.contains("Kör Aksiyon") || f.contains("Dürtüsel Panik") || f.contains("Kilitlenme"));
+    Color resultColor = isNegative ? Colors.orangeAccent : AppTheme.neonCyan;
+
+    final resultStr = data['finalResult'] ?? 'TIMEOUT';
+    String resultTranslated = "Zaman Aşımı";
+    if (resultStr == "BINARY_SOLVED") resultTranslated = "Kod Deşifre Edildi";
+    if (resultStr == "FAIL_IMPULSIVE_RANDOM") resultTranslated = "Hatalı Acil Durum Butonu";
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 7: SİSTEMSEL ÇÖKÜŞ",
+      testType: "💥 SİNYAL-GÜRÜLTÜ AYRIŞTIRMA VE PANİK",
+      status: "TAMAMLANDI",
+      isSuccess: !isNegative,
+      resultColor: resultColor,
+      metric1Label: "Aksiyon Süresi",
+      metric1Value: "${(data['decisionTimeMs'] ?? 0) / 1000} Sn",
+      metric2Label: "Sistem Sonucu",
+      metric2Value: resultTranslated,
+      findings: flags,
+      clinicalNote: "Adayın aşırı görsel gürültü ve yüksek stres altında paniğe kapılıp kapılmadığı; problemi okuyup deşifre etmek ile ezbere inisiyatif almak arasındaki seçimi.",
+      footer: "Bu rapor, ekrandaki yoğun kaos altındayken adayın dürtüsel kararlar alıp almadığı ölçülerek oluşturulmuştur.",
+    );
+  }
+
+  Widget _buildChapter8Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 8"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    // Negatif bulguları tespit et
+    bool isNegative = flags.any((f) => f.contains("Dürtüsel Kahramanlık") || f.contains("Akut Şok Kilitlenmesi"));
+    Color resultColor = isNegative ? Colors.orangeAccent : AppTheme.neonCyan;
+
+    final resultStr = data['finalResult'] ?? 'TIMEOUT';
+    String resultTranslated = "Zaman Aşımı";
+    if (resultStr == "OXYGEN_MASK") resultTranslated = "Protokol / Oksijen Maskesi";
+    if (resultStr == "BREACH_AREA") resultTranslated = "Kahramanlık / Sızıntıya Hücum";
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 8: DIŞ GÖVDE ÇATLAĞI",
+      testType: "🛡️ ACİL DURUM VE ŞOK YÖNETİMİ",
+      status: "TAMAMLANDI",
+      isSuccess: !isNegative,
+      resultColor: resultColor,
+      metric1Label: "Aksiyon Süresi",
+      metric1Value: "${(data['reactionTimeMs'] ?? 0) / 1000} Sn",
+      metric2Label: "Müdahale Stratejisi",
+      metric2Value: resultTranslated,
+      findings: flags,
+      clinicalNote: "Ani ve şiddetli kriz ("+"Dış Gövde Çatlağı"+") anlarında kahramanlık sendromuna kapılmadan ilk güvenlik prosedürlerini işletip işletemediği.",
+      footer: "Bu rapor, şok anında adayın önce kendi güvenliğini mi sağladığını yoksa fevri bir şekilde soruna mı atladığını ölçer.",
+    );
+  }
+
+  Widget _buildChapter9Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 9"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    // Negatif bulguları tespit et (Orange veya Red profiller)
+    bool isNegative = flags.any((f) => f.contains("Mazeretçi") || f.contains("Kaderci") || f.contains("Kurban") || f.contains("Sorumluluk Reddi"));
+    Color resultColor = isNegative ? Colors.orangeAccent : AppTheme.neonCyan;
+
+    final String selectedText = data['selectedText'] ?? "-";
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 9: ENKAZIN ARDINDAN",
+      testType: "🤔 İÇ/DIŞ DENETİM ODAĞI VE SAVUNMA MEKANİZMASI",
+      status: "TAMAMLANDI",
+      isSuccess: !isNegative,
+      resultColor: resultColor,
+      metric1Label: "Karar (Yanıt) Süresi",
+      metric1Value: "${(data['responseDelay'] ?? 0) / 1000} Sn",
+      metric2Label: "Seçilen Özeleştiri",
+      metric2Value: "\"$selectedText\"",
+      findings: flags,
+      clinicalNote: "Adayın başarısızlık konseptinde hatanın sorumluluğunu (Internal) kendine mi, yoksa (External) çevresel şartlara mı atfettiğinin tespiti.",
+      footer: "Bu rapor, adayın seçtiği kelime ve düşünme süresi baz alınarak psikolojik Denetim Odağını (Locus of Control) yansıtır.",
+    );
+  }
+
+  Widget _buildChapter10Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 10"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    final String choice = data['choiceId'] ?? 'KAEL';
+    bool isNegative = false;
+    
+    Color resultColor = choice == "ELARA" ? Colors.cyanAccent : Colors.blueAccent;
+
+    String resultTranslated = choice == "ELARA" ? "Elara (Sosyal Lider)" : "Dr. Kael (Teknik Dahi)";
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 10: BUZDAN ÇIKAN YÜZ",
+      testType: "👥 PARTNER SEÇİMİ VE KRİTER ANALİZİ",
+      status: "TAMAMLANDI",
+      isSuccess: !isNegative,
+      resultColor: resultColor,
+      metric1Label: "İnceleme Süresi",
+      metric1Value: "${(metric.totalTimeMs != 0 ? metric.totalTimeMs : (data['totalTimeMs'] ?? 0)) / 1000} Sn",
+      metric2Label: "Seçilen Partner",
+      metric2Value: resultTranslated,
+      findings: flags,
+      clinicalNote: "Adayın liderlik ekibi oluşturma vizyonu: Teknik mükemmeliyet odağı mı (Mavi - Kael), yoksa sosyal uyum ve ekip sinerjisi mi (Cyan - Elara)?",
+      footer: "Bu rapor, adayın partner seçimindeki önceliklerini ve dosyaları inceleme titizliğini (bias kontrolü ile) ölçer.",
+    );
+  }
+
+  Widget _buildChapter11Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 11"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    final String choice = data['choiceId'] ?? 'TIMEOUT';
+    bool isNegative = choice == "MANIPULATIVE" || choice == "TIMEOUT";
+    Color resultColor = isNegative ? Colors.redAccent : (choice == "COLLABORATIVE" ? Colors.greenAccent : AppTheme.neonCyan);
+
+    String resultTranslated = "Karar Felci (Zaman Aşımı)";
+    if (choice == "COLLABORATIVE") resultTranslated = "İşbirlikçi / Diyalog";
+    if (choice == "RATIONAL") resultTranslated = "Rasyonel / Mantık";
+    if (choice == "AUTHORITY") resultTranslated = "Otoriter / Emir";
+    if (choice == "MANIPULATIVE") resultTranslated = "Manipülatif / Baskı";
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 11: İLK TARTIŞMA",
+      testType: "🤝 ÇATIŞMA YÖNETİMİ VE İKNA STİLİ",
+      status: "TAMAMLANDI",
+      isSuccess: !isNegative,
+      resultColor: resultColor,
+      metric1Label: "Yanıt Gecikmesi",
+      metric1Value: "${(data['decisionDelay'] ?? 0) / 1000} Sn",
+      metric2Label: "Seçilen Üslup",
+      metric2Value: resultTranslated,
+      findings: flags,
+      clinicalNote: "Adayın kriz ve itiraz anlarında kullandığı iletişim dili; otorite kullanımı, manipülasyon eğilimi veya işbirlikçi tutumu.",
+      footer: "Bu rapor, partner itirazı sonrası adayın verdiği tepkiyi ve karar verme hızını (45sn limitli) ölçer.",
+    );
+  }
+
+  Widget _buildChapter12Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 12"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    final String choice = data['choiceId'] ?? 'CONSTRUCTIVE';
+    bool isNegative = choice == "PUNITIVE";
+    Color resultColor = choice == "CONSTRUCTIVE" ? Colors.greenAccent : (choice == "PROCEDURAL" ? Colors.yellowAccent : Colors.redAccent);
+
+    String resultTranslated = "Gelişimsel / Affedici";
+    if (choice == "PROCEDURAL") resultTranslated = "Prosedürel / Kuralcı";
+    if (choice == "PUNITIVE") resultTranslated = "Cezalandırıcı / Sert";
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 12: PARTNERİN HATASI",
+      testType: "⚖️ HATA TOLERANSI VE SOSYAL UYALIM",
+      status: "TAMAMLANDI",
+      isSuccess: !isNegative,
+      resultColor: resultColor,
+      metric1Label: "Karar Süresi",
+      metric1Value: "${metric.totalTimeMs / 1000} Sn",
+      metric2Label: "Tepki Stili",
+      metric2Value: resultTranslated,
+      findings: flags,
+      clinicalNote: "Adayın hata karşısındaki tutumu. Seçeneklerin renkli (G/S/K) sunulmasıyla adayın 'doğru olanı seçme' (Sosyal Arzu Edilebilirlik) eğilimi test edilmiştir.",
+      footer: "Bu rapor, partnerin hatası sonrası adayın adalet duygusunu ve koçluk potansiyelini ölçer.",
+    );
+  }
+
+  Widget _buildChapter13Report(bool isMobile) {
+    ChapterMetric? metric;
+    try {
+      metric = _selectedMetrics.firstWhere((m) => m.chapterId.contains("Bölüm 13"));
+    } catch (_) { return const SizedBox(); }
+
+    final data = metric.additionalData ?? {};
+    final flags = _engine.generateFlags([], [metric]);
+    
+    final String choice = data['choiceId'] ?? 'DISTRUST';
+    bool isNegative = choice == "DISTRUST";
+    Color resultColor = choice == "DELEGATE" ? Colors.greenAccent : (choice == "SELF" ? Colors.orangeAccent : Colors.redAccent);
+
+    String resultTranslated = "Suçlayıcı / Güvensiz";
+    if (choice == "DELEGATE") resultTranslated = "Güven Odaklı Delegasyon";
+    if (choice == "SELF") resultTranslated = "Koruyucu / Mikro-Yönetim";
+
+    return _buildReportContainer(
+      isMobile: isMobile,
+      chapterTitle: "BÖLÜM 13: GÜVEN TESTİ [FİNAL]",
+      testType: "🤝 RADİKAL GÜVEN VE DELEGASYON",
+      status: "TAMAMLANDI",
+      isSuccess: !isNegative,
+      resultColor: resultColor,
+      metric1Label: "İnceleme Süresi",
+      metric1Value: "${(data['readDuration'] ?? 0) / 1000} Sn",
+      metric2Label: "Final Kararı",
+      metric2Value: resultTranslated,
+      findings: flags,
+      clinicalNote: "Adayın en kritik (ölümcül risk) anında partnerine güvenip güvenmediği; yetkiyi kendisinde mi topladığı yoksa paylaşıp paylaşmadığı.",
+      footer: "Bu rapor, Modül 3'ün final kararındaki delegasyon oranı ve geçmişe dönük (Bölüm 12) suçlama eğilimi baz alınarak üretilmiştir.",
+    );
+  }
+
+  String _getFlagDescription(String flag) {
+    // BÖLÜM 1 (V3) TANIMLARI
+    if (flag.contains('Dürtüsel Aksiyon')) return "Veriyi tam analiz etmeden aksiyon alma eğilimi. Kriz anlarında planlı hareket etmek yerine hızlı denemelere başvurabilir.";
+    if (flag.contains('Analitik Çeviklik')) return "Karmaşık veriler arasındaki ilişkiyi saniyeler içinde fark edebilme. Yeni bir problemi öğrenme hızı üst düzeydir.";
+    if (flag.contains('Sistematik Çözümleme')) return "Baskı altında bile doğruluğu hıza tercih etme. Metodik, güvenilir ve adım adım ilerleyen problem çözme yaklaşımı.";
+    if (flag.contains('Adaptif Öğrenme')) return "Hatalarından anında ders çıkarıp stratejisini revize edebilen, bilişsel esnekliği yüksek profil.";
+    if (flag.contains('Rastgele Başarı')) return "Sistematik mantık yerine deneme-yanılma ile hedefe ulaşma. Sürdürülebilir başarı için yöntem desteği gerekebilir.";
+    if (flag.contains('Örüntü Tanıma')) return "Kaotik veri içindeki ana yapıyı hızlıca fark etme. Detaylara hakimdir ancak bütünü tamamlamak için desteğe ihtiyaç duyabilir.";
+    if (flag.contains('Bilişsel Blokaj')) return "Beklenmedik kriz anında karar mekanizmalarının anlık durması. Aşırı analiz (analysis paralysis) eğilimi.";
+
+    // BÖLÜM 2 (V3) TANIMLARI
+    if (flag.contains('Stratejik Orkestrasyon')) return "Tüm sistemleri denge eşiği olan %50'nin üzerinde tutmayı başaran, kısıtlı kaynağı mükemmel yöneten bütünsel liderlik profili.";
+    if (flag.contains('Operasyonel Sürdürülebilirlik')) return "Kurumun ana motorunu (Reaktörü) her şeyin önüne koyan, operasyonel altyapı ve süreklilik odaklı yapı.";
+    if (flag.contains('İnsan Sermayesi ve Esenlik')) return "Krizde bile en büyük değerin insan olduğunu unutmayan, ekip sağlığını ve esenliğini stratejik öncelik gören profil.";
+    if (flag.contains('Paydaş Yönetimi ve İletişim')) return "Dış koordinasyonu ve paydaş iletişimi korumayı, krizi yönetmenin anahtarı gören stratejik yaklaşım.";
+    if (flag.contains('Reaktif Kriz Tepkisi')) return "Baskı altında çok sık odak değiştiren; butonlar arasında panik belirtisi gösteren ve stres toleransı desteklenmesi gereken yapı.";
+    if (flag.contains('Tünel Vizyonu')) return "Bir alana aşırı odaklanıp (%80+) diğer kritik alanların (%20 altı) çökmesine izin veren, dar bakış açısıyla feda eylemi yapan profil.";
+    if (flag.contains('Karar Paralizi')) return "Süre dolmasına rağmen sistemleri kurtaramayan, baskı altında eylemsizliğe ve karar verme felcine düşen yapı.";
+
+    // BÖLÜM 3 (V3) PARAZİTLER TANIMLARI
+    if (flag.contains('Hiper-Odak')) return "En üst seviye işlem hızı ve odak kapasitesi; gürültü (pop-up) altında dahi elit seviyede bilişsel performans.";
+    if (flag.contains('Dengeli Analizci')) return "Profesyonel standartlarda, sürdürülebilir ve güvenilir çalışma hızı; verimlilik ve dikkat dengesi yerinde.";
+    if (flag.contains('Bilişsel Efor')) return "Dış uyaranlar (parazitler) nedeniyle işlem hızı yavaşlayan, odaklanmak için ekstra efor sarf eden profil.";
+    if (flag.contains('İşlem Ataleti')) return "Baskı ve gürültü altında işlem hızı ciddi oranda düşen; zaman yönetimi ve odaklanma konusunda desteklenmesi gereken yapı.";
+    if (flag.contains('Metodik Haritalama')) return "Önce veriyi toplayıp (şablonu çıkarıp) sonra aksiyona geçen, planlı ve sistematik çalışma disiplinine sahip profil.";
+    if (flag.contains('Bilişsel Filtreleme')) return "Gereksiz uyaranları (parazitleri) başarıyla süzüp ana odağı koruma yetisi; gürültüden etkilenmez.";
+    if (flag.contains('Bilişsel Toparlanma Hızı')) return "Kesinti (pop-up) sonrası ana işine saniyeler içinde geri dönebilen, bilişsel esnekliği yüksek çevik profil.";
+    if (flag.contains('Dürtüsel Refleks')) return "Parazitleri ne olduğuna bakmadan kapatan; hızlı ama kriz anında kritik veriyi okumadan geçme riski taşıyan yapı.";
+    if (flag.contains('Odak Erozyonu')) return "Gereksiz bilgiye takılıp asıl işini saniyelerce unutma eğilimi; çevresel gürültüye karşı hassas duyarlılık.";
+    if (flag.contains('Hafıza Hassasiyeti')) return "Veri bütünlüğünü kriz anında bile koruyan; görülen bilgiyi unutma (Actual Memory Error) payı en düşük profil.";
+    if (flag.contains('Multitasking Kaygısı')) return "Hem hafıza hem gürültü (pop-up) temizleme işini aynı anda yönetemeyen ve sistemleri multitasking altında çöken yapı.";
+
+    // BÖLÜM 4: KARANLIK KORİDORLAR TANIMLARI
+    if (flag.contains('Ar-Ge Koruyucusu')) return "Ciro kaybına (enerji) rağmen inovasyonu ve geleceği (Laboratuvar) savunan, Ar-Ge odaklı vizyoner liderlik profili.";
+    if (flag.contains('Çalışan Hakları Savunucusu')) return "Ekonomik daralma anında en büyük kalem olarak çalışan mutluluğunu (Yatakhane) ve esenliğini kalkan yapan profil.";
+    if (flag.contains('ESG / Vizyon Bilinci')) return "Kurumsal imajı, dış dünya duyarlılığını ve sürdürülebilirliği (Sera) kriz anında dahi öncelikli kale olarak tutan yapı.";
+    if (flag.contains('Özgüvenli Karar')) return "Etik sorumluluk alırken sergilediği netlik ve kararlılık üst düzeyde; kararının arkasında duran güvenilir profil.";
+    if (flag.contains('Bilişsel Çalkantı')) return "Onay aşamasında tereddüt yaşayan; etik yük altında içsel çatışması yükselen ve karar istikrarı desteklenmesi gereken yapı.";
+    if (flag.contains('Yüzeysel Bakış')) return "Diğer birimlerin (paydaşların) uğrayacağı zararı tam analiz etmeden (10 saniye altı) dürtüsel feda etme eğilimi gösteren yapı.";
+
+    // BÖLÜM 5: REAKTÖR KRİZİ TANIMLARI
+    if (flag.contains('Kognitif Kaçınma / Protokol İhlali')) return "Zorlu görevlerden ve belirsizlikten anında kaçarak, kestirme ve riskli yolları tercih etme eğilimi.";
+    if (flag.contains('Stres Bağımlı Kural Esnetme')) return "Artan strese (zaman kaygısına) dayanamayıp pes eden; zorlandığında doğruluğu feda edip risk alan profil.";
+    if (flag.contains('Kognitif Dayanıklılık ve Süreç Sadakati')) return "Zaman daralsa ve stres artsa dahi onaylanmamış yollara sığınmadan, protokole son ana kadar bağlı kalan yapı.";
+    if (flag.contains('Dürtüsel Yanılgı')) return "Analiz etmek yerine, ilk gözüne çarpan büyük işaretçiye refleksif olarak atlayan; bağlamı değerlendirmeyen profil.";
+    if (flag.contains('Metodik Veri Süzme')) return "Tuzağa düşmeyen, yoğun bilgi yığılması içinden kritik ve doğru veriyi sabırla süzebilen yüksek dikkat yetkinliği.";
+    if (flag.contains('Hevristik Deneme Döngüsü')) return "Sistematik çalışmak (okumak) yerine, kaba kuvvet ve tahmin yardımıyla rastgele denemeler yapan kaotik profil.";
+    
+    // BÖLÜM 6: ALARM YORGUNLUĞU TANIMLARI
+    if (flag.contains('Erken Karar / Alarm Yorgunluğu Zafiyeti')) return "Strese (siren ve kaos) dayanamayıp saniyeler içinde refleksif karar alarak anksiyeteden kaçınma çabası.";
+    if (flag.contains('Dengeli / Hesaplanmış Reaksiyon')) return "Kaosu belli bir süre analiz etme ve gözlemleme sabrını gösterdikten sonra hesaplanmış kararı veren yapı.";
+    if (flag.contains('Akut Motor Panik')) return "Şiddetli kaos altında kontrolünü fareye yansıtıp ekranın rastgele yerlerine yüksek tıklama yapan reaktif kriz profili.";
+    if (flag.contains('Soğukkanlı Kriz Gözlemcisi')) return "Ne derece sert bir kaos olursa olsun anlamsız fiziksel hareket göstermeyen, dürtüselliğine yenilmeyen sakin yapı.";
+    if (flag.contains('Bilgi Algısı İptali / Körlük Kararı')) return "Stres seviyesini sonlandırmak için bilgi akışını kesmeyi seçen, konfor alanını şirketin gözlerine tercih eden profil.";
+    if (flag.contains('Gerçeklik Metaneti / Şeffaflık')) return "Gerçekten kopmamak adına kendi kişisel rahatını (siren sesini) feda eden, adanmışlık düzeyi yüksek şeffaf karar.";
+
+    // BÖLÜM 7: SİSTEMSEL ÇÖKÜŞ TANIMLARI
+    if (flag.contains('Derin Analitik Odak')) return "Yoğun stres ve göz korkutucu kaos altında manipüle olmadan, problemin kökündeki veriyi sakince deşifre edebilen elit analitik beceri.";
+    if (flag.contains('Şanslı Dürtüsellik')) return "Problemi veya bağlamı bilerek değil, tamamen şans eseri rastgele butonlara basarak kurtulan; kararları rasyonel bir temele dayanmayan profil.";
+    if (flag.contains('Kör Aksiyon / Dürtüsel Panik')) return "Gürültüyü veya metni analiz edemeyip artan panikle 'bir şeyler yapmalıyım' diyerek hatalı butonlara saldıran tahripkâr dürtüsel yapı.";
+    if (flag.contains('Bilişsel Kilitlenme (Bölüm 7)')) return "Karmaşık veri yığını karşısında sorumluluktan ve hata yapmaktan korkarak sürenin bitmesini izleyen felç olmuş (Freeze) karar mekanizması.";
+
+    // BÖLÜM 8: DIŞ GÖVDE ÇATLAĞI TANIMLARI
+    if (flag.contains('Hesaplanmış Akut Müdahale')) return "Şiddetli kriz anında şoka girmeyen ve 'kahramanlık' kompleksine düşmeden asgari güvenlik kuralını saniyeler içinde uygulayan lider donanımı.";
+    if (flag.contains('Gecikmeli Güvenlik')) return "Şok uyaran karşısında anlık tereddüt yaşasa da nihayetinde doğru protokole dönmeyi başaran ve yıkıcı etkiyi sindirebilen yapı.";
+    if (flag.contains('Dürtüsel Kahramanlık / Şehitlik Eğilimi')) return "Altyapıyı veya güvenliği sağlamadan (körü körüne) asıl soruna saldıran, kahramanlık sendromuyla sistemi daha çok riske atan dürtüsel profil.";
+    if (flag.contains('Akut Şok Kilitlenmesi')) return "Beklenmeyen şiddetli şok krizlerinde karar alma/eylem kapasitesi (Freeze) tamamen sıfırlanan ve sorumluluk alamayan eylemsiz profil.";
+
+    // BÖLÜM 9: ENKAZIN ARDINDAN TANIMLARI
+    if (flag.contains('Sistemik Öz-Eleştiri')) return "Hatayı dışarıya atmadan rasyonel biçimde kabul edip kendi stratejisini sorgulayan en olgun lider profilidir (Growth Mindset).";
+    if (flag.contains('Adaptif Öğrenme Odağı')) return "Başarısızlığı yapısal eksiklik değil bir gelişim fırsatı gibi okur. Çevresel yetersizlikleri suçlamadan kendi öğrenim kapasitesiyle ilgilenir.";
+    if (flag.contains('Aşırı Öz-Yıkım')) return "Sorumluluğu tamamen alır ancak bu acıyı hissetmeye odaklanıp yıkıcı bir melankoliye (Rumination) kapılır. Krizlerde özgüven kırılması yaşar.";
+    if (flag.contains('Yüzeysel & Taktiksel Pişmanlık')) return "Hatanın kök neden sistematiğine inmez. O anki anlık dikkatsizliğine (taktiksel bir yalpalama) 'panikledim' diyerek mazeret uydurur.";
+    if (flag.contains('Mazeretçi Rasyonalizasyon')) return "Kibarca ve rasyonel maskeler ('Zaman yetmedi') üreterek hatayı çevresel şartlara bağlayan Dışsal Denetim Odağı yapısıdır.";
+    if (flag.contains('Kaderci Öğrenilmiş Çaresizlik')) return "Suçlamaz ancak tamamen vazgeçer ('Kaçınılmaz son'). Mücadele etmeyi anlamsız bulan, zorlu hedeflerde kolay pes edecek konformist yapıdır.";
+    if (flag.contains('Açık Kurban Psikolojisi')) return "Şirket kurallarını veya sistemi agresif şekilde suçlayan (Aggressive Projection). Takımda şikayet kültürü yayan toksik kurban psikolojisi.";
+    if (flag.contains('Sorumluluk Reddi')) return "Hatayla olan en ufak bağını dahi defansif şekilde reddeden ('Benim suçum değil'). Narsistik bir savunmayla gelişime kapalı kalan yapı.";
+
+    // BÖLÜM 10: BUZDAN ÇIKAN YÜZ TANIMLARI
+    if (flag.contains('Sosyal Uyum Temelli Liderlik')) return "Başarıyı bireysel yetenekten ziyade ekip sinerjisi ve sosyal uyumda arayan, yapıcı ve bütünleştirici liderlik tarzı.";
+    if (flag.contains('Teknik Yetkinlik Temelli Liderlik')) return "Duygusal uyum yerine teknik uzmanlığı ve performans çıktılarını önceliklendiren, rasyonel ve sonuç odaklı liderlik stili.";
+    if (flag.contains('Metodik Veri İnceleme')) return "Kritik atamalarda aday dosyalarını ve verileri derinlemesine inceleyerek risk analizi yapan, titiz ve veriye dayalı karar mekanizması.";
+    if (flag.contains('Sezgisel Seçim Refleksi')) return "Aday arketiplerini hızla süzüp seri karar veren, operasyonel çevikliği ve inisiyatif hızı yüksek liderlik refleksi.";
+
+    // BÖLÜM 11: İLK TARTIŞMA TANIMLARI
+    if (flag.contains('Psikolojik Güvenlik Mimarı')) return "Çatışma anında diyaloğu seçerek karşı tarafı dinleyen ve ortak zeminde buluşturan, yüksek EQ'lu liderlik profili.";
+    if (flag.contains('Duygusuz Rasyonalizasyon')) return "İnsan faktörünü ve duyguları yok sayıp sadece mantık ve verilere dayalı soğuk ama rasyonel bir iletişim dili kullanan yapı.";
+    if (flag.contains('Hiyerarşik Komuta ve Karar Keskinliği')) return "İtirazları zaman kaybı görüp 'Ben liderim' diyerek otoriteye ve emir-komuta zincirine sığınan, katı yönetici tarzı.";
+    if (flag.contains('Duygusal Manipülasyon ve Toksik Etki')) return "Hedefe ulaşmak için suçluluk duygusu yaratmayı ve baskı kurmayı araç olarak kullanan, takım güvenini sarsabilecek manipülatif yapı.";
+    if (flag.contains('Pasif-Agresif Karar Felci')) return "Baskı altında karar veremeyip 45 saniyelik kritik eşikte inisiyatifi başkasına devreden, kriz yönetiminde pasif kalan profil.";
+
+    // BÖLÜM 12: PARTNERİN HATASI TANIMLARI
+    if (flag.contains('Gelişimsel Liderlik (Hata Toleransı)')) return "Hatayı bir yıkım değil gelişim fırsatı olarak gören, ekibini cezalandırmak yerine kazanmaya odaklanan koçluk vizyonu.";
+    if (flag.contains('Kuralcı ve Soğuk Adalet')) return "Duyguları (üzüntü, pişmanlık) yok sayıp adaleti sadece kural ve prosedürler üzerinden işleten, disiplin odaklı liderlik tarzı.";
+    if (flag.contains('Cezalandırıcı Otoriter Yaklaşım')) return "Hatalara karşı sıfır toleransı olan, yaptırım ve ceza (kumanya kısıtlaması vb.) kullanarak otorite kuran sert yönetici profili.";
+
+    // BÖLÜM 13: GÜVEN TESTİ TANIMLARI
+    if (flag.contains('Güven Odaklı Delegasyon')) return "En kritik (hayat-memat) anında yetki devri yapabilen, partnerine inanan ve psikolojik güven inşası sağlayan liderlik tarzı.";
+    if (flag.contains('Koruyucu Mikro-Yönetim')) return "Ekibi korumak veya risk almamak için her şeyi kendisi yapmaya çalışan, yetki devretmekte zorlanan mikro-yönetici.";
+    if (flag.contains('Suçlayıcı ve Toksik Güvensizlik')) return "Ekibin geçmişteki hatalarını yüze vurarak güven bağını koparan ve krizde iletişimi reddeden toksik yönetim dili.";
+
+    if (flag.contains('Akut Karar Paralizisi')) return "Zaman baskısı ve bilgi yoğunluğu altında 'Donma' (Freeze) tepkisi veren; kriz anlarında sorumluluk almaktan kaçınan profil.";
+
+    return "Bilimsel telemetriye dayalı davranışsal gözlem saptanmıştır.";
   }
 }

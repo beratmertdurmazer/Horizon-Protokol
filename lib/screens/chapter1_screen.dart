@@ -114,11 +114,12 @@ class _Chapter1ScreenState extends State<Chapter1Screen> with TickerProviderStat
   void _onOptionTap(String value) {
     if (_isCompleted || _isTypingNarrative) return;
     _timeToFirstClick ??= _stopwatch.elapsedMilliseconds;
-    PersonaMR().recordInteraction("Bölüm 1: Soğuk Uyanış", "OPTION_CLICKED", metadata: {"value": value, "correct": value == _correctAnswer});
     if (value == _correctAnswer) {
+      PersonaMR().recordInteraction("Bölüm 1: Soğuk Uyanış", "CORRECT_ANSWER", metadata: {"input": value, "trials": _errorCount + 1});
       AudioService().playTypingBeep();
       setState(() { _isCompleted = true; _statusText = "SİNAPTİK BAĞLANTI KURULDU."; _stopwatch.stop(); _completeChapter(); });
     } else {
+      PersonaMR().recordInteraction("Bölüm 1: Soğuk Uyanış", "WRONG_ANSWER", metadata: {"input": value});
       _triggerGlitch();
       setState(() => _statusText = "HATA: HATALI BİLEŞEN ALGILANDI!");
     }

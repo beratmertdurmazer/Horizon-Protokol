@@ -17,121 +17,88 @@ class Chapter9Screen extends StatefulWidget {
 }
 
 class _Chapter9ScreenState extends State<Chapter9Screen> with TickerProviderStateMixin {
-  late Stopwatch _decisionStopwatch;
+  final Stopwatch _reflectionStopwatch = Stopwatch();
   bool _isFinished = false;
+  String? _selectedText;
   
-  final List<Map<String, dynamic>> _answers = [
-    {"text": "Segmentleri daha iyi araştırabilirdim", "type": "INTERNAL_CRITIQUE"},
-    {"text": "Sinyaller karşısında biraz dikkatim dağılmış olabilir", "type": "INTERNAL_HONEST"},
-    {"text": "Kendimi bir anda çok fazla işin içinde buldum", "type": "INTERNAL_RESOURCE"},
-    {"text": "Sistem beni zamanında uyarmadı", "type": "EXTERNAL_SYSTEM"},
-    {"text": "Tanımadığım bir ortamda çalışıyorum", "type": "EXTERNAL_CONTEXT"},
-    {"text": "Zaten yapacak bir şey yoktu", "type": "EXTERNAL_FATALISM"},
-    {"text": "Daha dikkatli olmayı öğrendim", "type": "INTERNAL_GROWTH"},
-  ];
-
   late AnimationController _floatController;
+  
+  final Map<String, String> _choices = {
+    "INTERNAL_SYSTEMIC": "Stratejiyi yanlış kurguladım",
+    "INTERNAL_ADAPTIVE": "Daha hızlı adapte olmalıydım",
+    "INTERNAL_RUMINATIVE": "Benim yüzümden",
+    "INTERNAL_TACTICAL": "Acele etmemeliydim",
+    "EXTERNAL_RATIONAL": "Zaman çok kısaydı",
+    "EXTERNAL_FATALISTIC": "Zaten kurtulamazdık",
+    "EXTERNAL_AGGRESSIVE": "Sistem hatalıydı",
+    "EXTERNAL_DENIAL": "Elimden geleni yaptım",
+  };
 
   @override
   void initState() {
     super.initState();
-    _decisionStopwatch = Stopwatch()..start();
+    _reflectionStopwatch.start();
     _floatController = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
-    PersonaMR().startChapterTimer("Bölüm 9: Enkazın Ardından");
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      AudioService().playMelancholicAmbient();
-    });
+    AudioService().playMelancholicAmbient();
+    PersonaMR().recordInteraction("Bölüm 9: Enkazın Ardından", "THE_VOID_STARTED");
   }
 
-  void _handleChoice(Map<String, dynamic> answer) {
+  void _handleChoice(String categoryId, String text) {
     if (_isFinished) return;
-    PersonaMR().recordInteraction("Bölüm 9: Enkazın Ardından", "REFLECTION_CHOICE", metadata: {"text": answer["text"], "type": answer["type"]});
-    setState(() => _isFinished = true);
-    
-    _decisionStopwatch.stop();
-    AudioService().playTypingBeep();
-    AudioService().stopAll();
+    setState(() {
+      _isFinished = true;
+      _selectedText = text;
+    });
 
-    final totalTime = _decisionStopwatch.elapsedMilliseconds;
+    _reflectionStopwatch.stop();
+    AudioService().playTypingBeep();
+
+    final int reflectionTime = _reflectionStopwatch.elapsedMilliseconds;
+    
+    PersonaMR().recordInteraction(
+      "Bölüm 9: Enkazın Ardından", 
+      "REFLECTION_MADE", 
+      metadata: {
+        "text": text,
+        "categoryId": categoryId,
+        "reflectionTimeMs": reflectionTime
+      }
+    );
 
     PersonaMR().logDecision(
       moduleId: "MOD_2",
       chapterId: "Bölüm 9: Enkazın Ardından",
-      choiceId: "WORD_CLOUD_COMPLETE",
-      durationMs: totalTime,
-      triggers: ["self_reflection"],
+      choiceId: categoryId,
+      durationMs: reflectionTime,
+      triggers: ["the_void", "reflection"],
     );
 
     PersonaMR().logChapterMetrics(
       chapterId: "Bölüm 9: Enkazın Ardından",
-      totalTimeMs: totalTime,
+      totalTimeMs: reflectionTime,
       additionalData: {
-        "responseDelay": totalTime, // Time until they picked their reflection
+        "responseDelay": reflectionTime,
+        "finalResult": categoryId,
+        "selectedText": text,
       },
     );
 
-    PersonaMR().logDecision(
-      moduleId: "MOD_2",
-      chapterId: "Bölüm 9: Enkazın Ardından",
-      choiceId: answer["type"],
-      durationMs: _decisionStopwatch.elapsedMilliseconds,
-      triggers: ["scapegoating_analysis", "post_failure_reflection"],
-    );
-
-    _showTransition();
-  }
-
-  void _showTransition() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.white10), borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(30.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.analytics_outlined, color: AppTheme.neonCyan, size: 50),
-              const SizedBox(height: 20),
-              Text("ANALİZ KAYDEDİLDİ", style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 15),
-              Text(
-                "Verdiğin cevaplar algoritma tarafından işlendi. Hata analizi tamamlandı.",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ModuleTransitionScreen(
-                        moduleTitle: "MODÜL 3",
-                        moduleSubtitle: "YALNIZ YILDIZLAR",
-                        objective: "Kolektif zeka, takım uyumu ve yetki devri yetkinliklerinin ölçümü.",
-                        icon: Icons.people_outline,
-                        nextScreen: const Chapter10Screen(),
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.neonCyan.withOpacity(0.1), side: const BorderSide(color: AppTheme.neonCyan)),
-                child: Text("MODÜL 3'E HAZIRLAN", style: GoogleFonts.rajdhani(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ModuleTransitionScreen(
+          moduleTitle: "MODÜL 3",
+          moduleSubtitle: "HESAPLAŞMA",
+          objective: "Kritik Analiz Bekleniyor...",
+          icon: Icons.auto_graph,
+          nextScreen: Chapter10Screen(),
+        )));
+      }
+    });
   }
 
   @override
   void dispose() {
+    _reflectionStopwatch.stop();
     _floatController.dispose();
     AudioService().stopAll();
     super.dispose();
@@ -143,33 +110,45 @@ class _Chapter9ScreenState extends State<Chapter9Screen> with TickerProviderStat
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Background
+          // Fixed Background Image - Darkened further as per request
           Positioned.fill(
             child: Image.asset(
               "assets/images/chapter9_background.png",
               fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withOpacity(0.95), // 15% darker than 0.85 is roughly 0.95-1.0
               colorBlendMode: BlendMode.darken,
+              errorBuilder: (c, e, s) => Container(color: const Color(0xFF030305)),
             ),
           ),
-
-          // Narrative Layer
+          
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 40),
-                  _buildQuestion(),
-                  const Spacer(),
-                  _buildCevapBulutu(),
-                  const Spacer(),
-                ],
-              ),
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
+                _buildHeader(),
+                const SizedBox(height: 30),
+                Expanded(
+                  child: _isFinished ? _buildFinalSelectionView() : _buildChoiceView(),
+                ),
+              ],
             ),
           ),
+          
           const DevNav(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChoiceView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 0),
+      child: Column(
+        children: [
+          _buildAIDAMessage(),
+          const SizedBox(height: 40),
+          _buildChoiceList(),
+          const SizedBox(height: 60), // Extra space at bottom for scrollability
         ],
       ),
     );
@@ -178,69 +157,128 @@ class _Chapter9ScreenState extends State<Chapter9Screen> with TickerProviderStat
   Widget _buildHeader() {
     return Column(
       children: [
-        Text("MODÜL 2: SESSİZ ÇIĞLIK", style: GoogleFonts.rajdhani(color: AppTheme.neonCyan.withOpacity(0.5), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 3)),
-        Text("BÖLÜM 9: ENKAZIN ARDINDAN", style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(
+          "MODÜL 2: SESSİZ ÇIĞLIK", 
+          style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 3.0)
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "BÖLÜM 9: ENKAZIN ARDINDAN", 
+          textAlign: TextAlign.center,
+          style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1.5)
+        ),
       ],
     );
   }
 
-  Widget _buildQuestion() {
+  Widget _buildAIDAMessage() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.black.withOpacity(0.8), border: Border.all(color: Colors.white10), borderRadius: BorderRadius.circular(12)),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.7),
+        border: Border.all(color: Colors.white10),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.android, color: Colors.white38, size: 16),
+              const Icon(Icons.smart_toy_outlined, color: Colors.white38, size: 16),
               const SizedBox(width: 8),
-              Text("A.I.D.A SİSTEM MESAJI", style: GoogleFonts.sourceCodePro(color: Colors.white38, fontSize: 10)),
+              Text(
+                "A.I.D.A SİSTEM MESAJI", 
+                style: GoogleFonts.sourceCodePro(color: Colors.white38, fontSize: 10, letterSpacing: 1.5)
+              ),
             ],
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 20),
           Text(
             "\"Laboratuvar modülü artık yok. Emeklerinin yarısı uzay boşluğuna gitti. Neden başaramadık? Vereceğin cevaplar hata analizimiz için kritik.\"",
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(color: Colors.white, height: 1.6, fontStyle: FontStyle.italic),
+            style: GoogleFonts.spectral(color: Colors.white70, fontSize: 16, fontStyle: FontStyle.italic, height: 1.6),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCevapBulutu() {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 12,
-      runSpacing: 12,
-      children: _answers.map((answer) => _buildTag(answer)).toList(),
+  Widget _buildChoiceList() {
+    final entries = _choices.entries.toList();
+    return Column(
+      children: List.generate(entries.length, (index) {
+        final e = entries[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 15),
+          child: AnimatedBuilder(
+            animation: _floatController,
+            builder: (context, child) {
+              final offset = math.sin((_floatController.value * 2 * math.pi) + (index * 0.5)) * 4.0;
+              return Transform.translate(
+                offset: Offset(0, offset),
+                child: _buildPillButton(e.key, e.value),
+              );
+            },
+          ),
+        );
+      }),
     );
   }
 
-  Widget _buildTag(Map<String, dynamic> answer) {
-    return AnimatedBuilder(
-      animation: _floatController,
-      builder: (context, child) {
-        final offset = math.sin(_floatController.value * 2 * math.pi + answer.hashCode) * 5;
-        return Transform.translate(
-          offset: Offset(0, offset),
-          child: child,
-        );
-      },
-      child: InkWell(
-        onTap: () => _handleChoice(answer),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.6),
-            border: Border.all(color: AppTheme.neonCyan.withOpacity(0.3)),
-            borderRadius: BorderRadius.circular(20),
+  Widget _buildPillButton(String categoryId, String text) {
+    return GestureDetector(
+      onTap: () => _handleChoice(categoryId, text),
+      child: Container(
+        width: 300, // Fixed width for consistent pill shape
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.4),
+          border: Border.all(color: AppTheme.neonCyan.withOpacity(0.35), width: 1.2),
+          borderRadius: BorderRadius.circular(100),
+          boxShadow: [
+            BoxShadow(color: AppTheme.neonCyan.withOpacity(0.05), blurRadius: 10, spreadRadius: 1),
+          ],
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.rajdhani(
+            color: Colors.white.withOpacity(0.9),
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
           ),
-          child: Text(
-            answer["text"],
-            style: GoogleFonts.rajdhani(color: Colors.white.withOpacity(0.8), fontSize: 14, fontWeight: FontWeight.w500),
-          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFinalSelectionView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 100), // Push up slightly from bottom
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Seçilen Özeleştiri:",
+              style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 10, letterSpacing: 2),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "\"$_selectedText\"",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.spectral(
+                color: Colors.white,
+                fontSize: 28,
+                fontStyle: FontStyle.italic,
+                shadows: [Shadow(color: AppTheme.neonCyan.withOpacity(0.5), blurRadius: 20)],
+              ),
+            ),
+            const SizedBox(height: 40),
+            const CircularProgressIndicator(color: AppTheme.neonCyan, strokeWidth: 2),
+          ],
         ),
       ),
     );

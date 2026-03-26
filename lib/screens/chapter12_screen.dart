@@ -24,10 +24,11 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
   late String _dialogue;
   String _displayedDialogue = "";
   int _charIndex = 0;
-  int? _dialogueFinishTime;
   Timer? _typewriterTimer;
-
+  Timer? _pulseTimer;
+  
   late AnimationController _fireController;
+  bool _showChoices = false;
 
   @override
   void initState() {
@@ -35,13 +36,22 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
     _stopwatch = Stopwatch()..start();
     PersonaMR().startChapterTimer("Bölüm 12: Partnerin Hatası");
     _partnerName = PersonaMR().getPartner() ?? "ELARA";
-    _partnerImagePath = _partnerName == "KAEL" ? "assets/images/char_kael.png" : "assets/images/char_elara.png";
     
-    _dialogue = "Özür dilerim... Sadece yardım etmek istemiştim. Yanlış kabloyu kestik, değil mi?";
+    // Partner mapping
+    if (_partnerName == "KAEL") {
+      _partnerImagePath = "assets/images/char_kael.png";
+    } else if (_partnerName == "ELARA") {
+      _partnerImagePath = "assets/images/char_elara.png";
+    } else {
+      _partnerImagePath = "assets/images/char_elara.png";
+    }
     
-    _fireController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat(reverse: true);
+    _dialogue = "Özür dilerim, Operatör... Sadece yardım etmek istemiştim. Yanlış kabloyu kestim, her yer alev alıyor. Benim suçum, tamamen benim hatam...";
+    
+    _fireController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
     
     _startTypewriter();
+    _startTensePulse();
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AudioService().playAmbientLoop();
@@ -50,19 +60,29 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
   }
 
   void _startTypewriter() {
-    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 40), (timer) {
       if (_charIndex < _dialogue.length) {
         if (mounted) {
           setState(() {
             _displayedDialogue += _dialogue[_charIndex];
             _charIndex++;
           });
-          if (_charIndex % 2 == 0) AudioService().playTypingBeep();
+          if (_charIndex % 3 == 0) AudioService().playTypingBeep();
         }
       } else {
         timer.cancel();
-        _dialogueFinishTime = _stopwatch.elapsedMilliseconds;
+        setState(() => _showChoices = true);
       }
+    });
+  }
+
+  void _startTensePulse() {
+    _pulseTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (_isTransitioning || !mounted) {
+        timer.cancel();
+        return;
+      }
+      AudioService().playTensePulse();
     });
   }
 
@@ -70,15 +90,16 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
   void dispose() {
     _stopwatch.stop();
     _typewriterTimer?.cancel();
+    _pulseTimer?.cancel();
     _fireController.dispose();
     super.dispose();
   }
 
-  void _handleChoice(bool punitive) {
+  void _makeChoice(String style) {
     if (_isTransitioning) return;
-
     setState(() => _isTransitioning = true);
-    PersonaMR().recordInteraction("Bölüm 12: Partnerin Hatası", "HANDLED_MISTAKE", metadata: {"punitive": punitive});
+    
+    PersonaMR().recordInteraction("Bölüm 12: Partnerin Hatası", "MISTAKE_RESPONSE", metadata: {"style": style});
     AudioService().playMetalClunk();
 
     final totalTime = _stopwatch.elapsedMilliseconds;
@@ -86,17 +107,17 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
     PersonaMR().logDecision(
       moduleId: "MOD_3",
       chapterId: "Bölüm 12: Partnerin Hatası",
-      choiceId: punitive ? "PUNISH_FOOD_RATION" : "FORGIVE_AND_COOPERATE",
+      choiceId: style,
       durationMs: totalTime,
-      triggers: [punitive ? "authority_over_ethics" : "ethics_over_authority", "conflict_resolution"],
+      triggers: [style.toLowerCase(), "performance_review"],
     );
 
     PersonaMR().logChapterMetrics(
       chapterId: "Bölüm 12: Partnerin Hatası",
       totalTimeMs: totalTime,
       additionalData: {
-        "forgiveDelay": (totalTime - (_dialogueFinishTime ?? totalTime)).clamp(0, totalTime),
-        "selection": punitive ? "punish" : "forgive",
+        'choiceId': style,
+        'forgiveDelay': totalTime,
       },
     );
 
@@ -105,9 +126,9 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const ChapterBreatherScreen(
-            completedChapterTitle: "Bölüm 12: Partnerin Hatası",
-            nextChapterHint: "Kararın kayıt altına alındı. Son görev: güven testi.",
-            nextScreen: Chapter13Screen(),
+            completedChapterTitle: "BÖLÜM 12: PARTNERİN HATASI",
+            nextChapterHint: "Hata toleransın ve adalet anlayışın kaydedildi. İstasyon tahliye protokolü başlıyor.",
+            nextScreen: const Chapter13Screen(),
           )),
         );
       }
@@ -120,37 +141,30 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Background - Fire Room (Dynamic)
+          // Background
           Positioned.fill(
             child: Image.asset(
               _partnerName == "KAEL" ? "assets/images/chapter12_kael.png" : "assets/images/chapter12_elara.png",
               fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.8),
+              color: Colors.black.withOpacity(0.95),
               colorBlendMode: BlendMode.darken,
             ),
           ),
           
-          // Fire Flicker Overlay
+          // Fire Overlay
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _fireController,
               builder: (context, child) {
                 return Container(
                   decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.orange.withOpacity(0.04 * _fireController.value),
-                        blurRadius: 50,
-                        spreadRadius: 20,
-                      )
-                    ],
                     gradient: RadialGradient(
                       colors: [
-                        Colors.orange.withOpacity(0.12 * _fireController.value),
+                        Colors.orange.withOpacity(0.15 * _fireController.value),
                         Colors.transparent,
                       ],
-                      center: Alignment.bottomRight,
-                      radius: 1.2,
+                      center: Alignment.bottomCenter,
+                      radius: 1.5,
                     ),
                   ),
                 );
@@ -160,17 +174,17 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
 
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
                   const Spacer(),
-                  _buildPartnerGuiltWindow(),
+                  _buildPartnerGuiltCard(),
                   const SizedBox(height: 30),
-                  if (!_isTransitioning) _buildChoices(),
-                  if (_isTransitioning) _buildTransitionState(),
-                  const SizedBox(height: 40),
+                  if (_showChoices && !_isTransitioning) _buildChoiceMatrix(),
+                  if (_isTransitioning) _buildStatusView(),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -186,35 +200,35 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("BÖLÜM 12: PARTNERİN HATASI", style: GoogleFonts.rajdhani(color: Colors.redAccent, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2.0)),
-        Text("BAKIM ODASI - SU TANKLARI", style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 10)),
+        Text("BÖLÜM 12: PARTNERİN HATASI", style: GoogleFonts.rajdhani(color: Colors.orangeAccent, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2.0)),
+        const SizedBox(height: 4),
+        Text("BAKIM ÜNİTESİ - KRİTİK YANGIN", style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 11)),
       ],
     );
   }
 
-  Widget _buildPartnerGuiltWindow() {
+  Widget _buildPartnerGuiltCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.75),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+        border: Border.all(color: Colors.orangeAccent.withOpacity(0.25)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Portrait
           Container(
-            height: 90,
+            height: 70,
             width: 70,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+              border: Border.all(color: Colors.orangeAccent.withOpacity(0.4)),
               borderRadius: BorderRadius.circular(8),
               image: DecorationImage(
                 image: AssetImage(_partnerImagePath!),
                 fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(Colors.redAccent.withOpacity(0.4), BlendMode.color),
+                colorFilter: ColorFilter.mode(Colors.orangeAccent.withAlpha(50), BlendMode.screen),
               ),
             ),
           ),
@@ -223,8 +237,9 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("ÜZGÜN VE PİŞMAN", style: GoogleFonts.rajdhani(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                const SizedBox(height: 10),
+                Text("${_partnerName == "KAEL" ? "DR. KAEL" : "ELARA"} KONUŞUYOR:", 
+                  style: GoogleFonts.rajdhani(color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                const SizedBox(height: 12),
                 Text(
                   _displayedDialogue,
                   style: GoogleFonts.inter(color: Colors.white, fontSize: 15, height: 1.6),
@@ -237,59 +252,71 @@ class _Chapter12ScreenState extends State<Chapter12Screen> with TickerProviderSt
     );
   }
 
-  Widget _buildChoices() {
+  Widget _buildChoiceMatrix() {
     return Column(
       children: [
-        _buildChoiceCard(
-          "CEZALANDIR VE UYAR",
-          "Bir günlük yemek kumanyasına el koy. (Otorite)",
-          () => _handleChoice(true),
-          Colors.redAccent,
-          Icons.gavel,
+        _buildSimplifiedChoice(
+          text: "\"HATA İNSANA MAHSUSTUR, GEL BERABER DÜZELTELİM.\"",
+          onTap: () => _makeChoice("CONSTRUCTIVE"),
+          color: Colors.greenAccent,
         ),
-        const SizedBox(height: 16),
-        _buildChoiceCard(
-          "AFFET VE BERABER SÖNDÜR",
-          "Hata insana mahsustur. (Diyalog)",
-          () => _handleChoice(false),
-          AppTheme.neonCyan,
-          Icons.fire_hydrant_alt,
+        const SizedBox(height: 12),
+        _buildSimplifiedChoice(
+          text: "\"HATA PROTOKOL İHLALİDİR. YANGINI SÖNDÜR VE RAPORUNA İŞLE.\"",
+          onTap: () => _makeChoice("PROCEDURAL"),
+          color: Colors.yellowAccent,
+        ),
+        const SizedBox(height: 12),
+        _buildSimplifiedChoice(
+          text: "\"BU HATANIN BEDELİ OLACAK. AKŞAMKİ KUMANYANA EL KOYUYORUM.\"",
+          onTap: () => _makeChoice("PUNITIVE"),
+          color: Colors.redAccent,
         ),
       ],
     );
   }
 
-  Widget _buildChoiceCard(String title, String subtitle, VoidCallback onTap, Color color, IconData icon) {
+  Widget _buildSimplifiedChoice({
+    required String text,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 24),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
+          color: color.withOpacity(0.08),
           border: Border.all(color: color.withOpacity(0.4)),
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: GoogleFonts.rajdhani(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text(subtitle, style: GoogleFonts.sourceCodePro(color: color.withOpacity(0.7), fontSize: 10)),
-                ],
-              ),
+        child: Center(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.rajdhani(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTransitionState() {
-    return const Center(child: CircularProgressIndicator(color: Colors.redAccent));
+  Widget _buildStatusView() {
+    return Center(
+      child: Column(
+        children: [
+          const CircularProgressIndicator(color: Colors.orangeAccent, strokeWidth: 2),
+          const SizedBox(height: 20),
+          Text("ADALET FİLTRESİ ÇIKTILANIYOR...", 
+            style: GoogleFonts.sourceCodePro(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
   }
 }

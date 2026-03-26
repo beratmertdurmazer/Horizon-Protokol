@@ -26,6 +26,12 @@ class _Chapter11ScreenState extends State<Chapter11Screen> with TickerProviderSt
   int _charIndex = 0;
   Timer? _typewriterTimer;
   Timer? _pulseTimer;
+  
+  // Timeout & Counter logic
+  Timer? _decisionTimer;
+  int _secondsElapsed = 0;
+  bool _showChoices = false;
+  bool _isTimeout = false;
 
   @override
   void initState() {
@@ -46,7 +52,7 @@ class _Chapter11ScreenState extends State<Chapter11Screen> with TickerProviderSt
   }
 
   void _startTypewriter() {
-    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 40), (timer) {
+    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
       if (_charIndex < _dialogue.length) {
         if (mounted) {
           setState(() {
@@ -57,6 +63,8 @@ class _Chapter11ScreenState extends State<Chapter11Screen> with TickerProviderSt
         }
       } else {
         timer.cancel();
+        setState(() => _showChoices = true);
+        _startDecisionTimer();
       }
     });
   }
@@ -71,38 +79,65 @@ class _Chapter11ScreenState extends State<Chapter11Screen> with TickerProviderSt
     });
   }
 
+  void _startDecisionTimer() {
+    _decisionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_isTransitioning || !mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _secondsElapsed++);
+      if (_secondsElapsed >= 45) {
+        timer.cancel();
+        _handleTimeout();
+      }
+    });
+  }
+
+  void _handleTimeout() {
+    if (_isTransitioning) return;
+    setState(() {
+      _isTimeout = true;
+      _isTransitioning = true;
+    });
+    _finalizeChoice("TIMEOUT");
+  }
+
   @override
   void dispose() {
     _stopwatch.stop();
     _typewriterTimer?.cancel();
     _pulseTimer?.cancel();
+    _decisionTimer?.cancel();
     super.dispose();
   }
 
-  void _makeChoice(bool collaborative) {
+  void _makeChoice(String style) {
     if (_isTransitioning) return;
-
     setState(() => _isTransitioning = true);
-    PersonaMR().recordInteraction("Bölüm 11: İlk Tartışma", "DIALOGUE_CHOICE", metadata: {"collaborative": collaborative});
+    _finalizeChoice(style);
+  }
+
+  void _finalizeChoice(String style) {
+    PersonaMR().recordInteraction("Bölüm 11: İlk Tartışma", "CONFLICT_STYLE_SELECTED", metadata: {"style": style, "delay": _secondsElapsed});
     AudioService().playMetalClunk();
 
     final totalTime = _stopwatch.elapsedMilliseconds;
-    final bool authority = !collaborative; // Map 'collaborative' to 'authority' for choiceId and triggers
 
     PersonaMR().logDecision(
       moduleId: "MOD_3",
       chapterId: "Bölüm 11: İlk Tartışma",
-      choiceId: authority ? "AUTHORITY_OVER_ETHICS" : "ETHICS_OVER_AUTHORITY",
+      choiceId: style,
       durationMs: totalTime,
-      triggers: [authority ? "authoritarian" : "cooperative", "conflict_resolution"],
+      triggers: [style.toLowerCase(), "conflict_resolution"],
     );
 
     PersonaMR().logChapterMetrics(
       chapterId: "Bölüm 11: İlk Tartışma",
       totalTimeMs: totalTime,
       additionalData: {
-        "negotiationSteps": 1, // Currently a single-step decision in UI
-        "finalAgreement": collaborative ? 1 : 0,
+        'choiceId': style,
+        'decisionDelay': _secondsElapsed * 1000,
+        'finalAgreement': (style == "COLLABORATIVE" || style == "RATIONAL") ? true : false,
       },
     );
 
@@ -111,9 +146,9 @@ class _Chapter11ScreenState extends State<Chapter11Screen> with TickerProviderSt
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const ChapterBreatherScreen(
-            completedChapterTitle: "Bölüm 11: İlk Tartışma",
-            nextChapterHint: "Liderlik yaklaşımın kaydedildi. Yangın alarmı.",
-            nextScreen: Chapter12Screen(),
+            completedChapterTitle: "BÖLÜM 11: İLK TARTIŞMA",
+            nextChapterHint: "Çatışma çözüm tarzın kaydedildi. Sektör girişinde alarm sesleri yükseliyor.",
+            nextScreen: const Chapter12Screen(),
           )),
         );
       }
@@ -126,29 +161,29 @@ class _Chapter11ScreenState extends State<Chapter11Screen> with TickerProviderSt
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Background - Sector D Corridor (Dynamic)
+          // Background
           Positioned.fill(
             child: Image.asset(
               _partnerName == "KAEL" ? "assets/images/chapter11_kael.png" : "assets/images/chapter11_elara.png",
               fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.85),
+              color: Colors.black.withOpacity(0.95),
               colorBlendMode: BlendMode.darken,
             ),
           ),
 
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, // Left-aligned
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
                   const Spacer(),
-                  _buildPartnerCard(),
+                  _buildDialogueBox(),
                   const SizedBox(height: 30),
-                  if (!_isTransitioning) _buildChoiceButtons(),
-                  if (_isTransitioning) _buildTransitionState(),
-                  const SizedBox(height: 40),
+                  if (_showChoices && !_isTransitioning) _buildChoiceMatrix(),
+                  if (_isTransitioning) _buildStatusView(),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -161,38 +196,61 @@ class _Chapter11ScreenState extends State<Chapter11Screen> with TickerProviderSt
   }
 
   Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text("BÖLÜM 11: İLK TARTIŞMA", style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2.0)),
-        Text("SEKTÖR D - BAKIM TÜNELİ GİRİŞİ", style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 10)),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("BÖLÜM 11: İLK TARTIŞMA", style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2.0)),
+            Text("KRİTİK EŞİK - BAKIM TÜNELİ GİRİŞİ", style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 10)),
+          ],
+        ),
+        if (_showChoices && !_isTransitioning) _buildTimerBadge(),
       ],
     );
   }
 
-  Widget _buildPartnerCard() {
+  Widget _buildTimerBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: _secondsElapsed > 35 ? Colors.red.withOpacity(0.2) : Colors.black.withOpacity(0.6),
+        border: Border.all(color: _secondsElapsed > 35 ? Colors.redAccent : AppTheme.neonCyan.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        "SÜRE: $_secondsElapsed S",
+        style: GoogleFonts.sourceCodePro(
+          color: _secondsElapsed > 35 ? Colors.redAccent : AppTheme.neonCyan,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogueBox() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
-        border: Border.all(color: AppTheme.neonCyan.withOpacity(0.3)),
+        color: Colors.black.withOpacity(0.75),
+        border: Border.all(color: AppTheme.neonCyan.withOpacity(0.25)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Partner Portrait
           Container(
-            height: 80,
-            width: 80,
+            height: 70,
+            width: 70,
             decoration: BoxDecoration(
-              border: Border.all(color: AppTheme.neonCyan.withOpacity(0.5)),
+              border: Border.all(color: AppTheme.neonCyan.withOpacity(0.4)),
               borderRadius: BorderRadius.circular(8),
               image: DecorationImage(
                 image: AssetImage(_partnerImagePath!),
                 fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(AppTheme.neonCyan.withOpacity(0.2), BlendMode.color),
               ),
             ),
           ),
@@ -201,8 +259,9 @@ class _Chapter11ScreenState extends State<Chapter11Screen> with TickerProviderSt
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("${_partnerName == "KAEL" ? "DR. KAEL" : "ELARA"} KONUŞUYOR:", style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                const SizedBox(height: 10),
+                Text("${_partnerName == "KAEL" ? "DR. KAEL" : "ELARA"} KONUŞUYOR:", 
+                  style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                const SizedBox(height: 12),
                 Text(
                   _displayedDialogue,
                   style: GoogleFonts.inter(color: Colors.white, fontSize: 15, height: 1.6),
@@ -215,53 +274,75 @@ class _Chapter11ScreenState extends State<Chapter11Screen> with TickerProviderSt
     );
   }
 
-  Widget _buildChoiceButtons() {
+  Widget _buildChoiceMatrix() {
     return Column(
       children: [
-        _buildActionButton(
-          "\"NEDEN BÖYLE DÜŞÜNÜYORSUN? TEKRAR KONTROL EDELİM.\"",
-          () => _makeChoice(true),
-          AppTheme.neonCyan,
+        _buildSimplifiedChoice(
+          text: "\"NEDEN BÖYLE DÜŞÜNÜYORSUN? TEKRAR KONTROL EDELİM.\"",
+          onTap: () => _makeChoice("COLLABORATIVE"),
+          color: Colors.greenAccent,
         ),
-        const SizedBox(height: 16),
-        _buildActionButton(
-          "\"OKSİJEN SORUNU YOK. YETKİLİ BENİM, DEDİĞİMİ YAP!\"",
-          () => _makeChoice(false),
-          Colors.redAccent,
+        const SizedBox(height: 12),
+        _buildSimplifiedChoice(
+          text: "\"VERİLERE ODAKLAN. SİMÜLASYON YOLU DOĞRULUYOR.\"",
+          onTap: () => _makeChoice("RATIONAL"),
+          color: Colors.yellowAccent,
+        ),
+        const SizedBox(height: 12),
+        _buildSimplifiedChoice(
+          text: "\"EĞER GİRMEZSEN HEPİMİZ HAVASIZLIKTAN ÖLECEĞİZ. SORUMLUSU SEN OLACAKSIN!\"",
+          onTap: () => _makeChoice("MANIPULATIVE"),
+          color: Colors.orangeAccent,
+        ),
+        const SizedBox(height: 12),
+        _buildSimplifiedChoice(
+          text: "\"OKSİJEN SORUNU YOK. YETKİLİ BENİM, DEDİĞİMİ YAP!\"",
+          onTap: () => _makeChoice("AUTHORITY"),
+          color: Colors.redAccent,
         ),
       ],
     );
   }
 
-  Widget _buildActionButton(String label, VoidCallback onTap, Color color) {
+  Widget _buildSimplifiedChoice({
+    required String text,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
+          color: color.withOpacity(0.08),
           border: Border.all(color: color.withOpacity(0.4)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Center(
           child: Text(
-            label,
+            text,
             textAlign: TextAlign.center,
-            style: GoogleFonts.rajdhani(color: color, fontSize: 15, fontWeight: FontWeight.bold),
+            style: GoogleFonts.rajdhani(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTransitionState() {
+  Widget _buildStatusView() {
     return Center(
       child: Column(
         children: [
-          const CircularProgressIndicator(color: AppTheme.neonCyan),
+          const CircularProgressIndicator(color: AppTheme.neonCyan, strokeWidth: 2),
           const SizedBox(height: 20),
-          Text("STRATEJİ KAYDEDİLİYOR...", style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(_isTimeout ? "KARAR FELCİ ANALİZ EDİLİYOR..." : "ÜSLUP KAYDI OLUŞTURULUYOR...", 
+            style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );

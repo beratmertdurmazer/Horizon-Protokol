@@ -1,3 +1,5 @@
+enum EnergyArea { labs, quarters, greenhouse }
+
 class Candidate {
   final String id;
   final String name;

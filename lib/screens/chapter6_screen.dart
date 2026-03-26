@@ -6,8 +6,8 @@ import 'package:horizon_protocol/core/app_theme.dart';
 import 'package:horizon_protocol/services/persona_mr.dart';
 import 'package:horizon_protocol/services/audio_service.dart';
 import 'package:horizon_protocol/widgets/dev_nav.dart';
+import 'package:horizon_protocol/screens/module_transition_screen.dart';
 import 'package:horizon_protocol/screens/chapter7_screen.dart';
-import 'package:horizon_protocol/screens/chapter_breather_screen.dart';
 
 class Chapter6Screen extends StatefulWidget {
   const Chapter6Screen({super.key});
@@ -17,81 +17,169 @@ class Chapter6Screen extends StatefulWidget {
 }
 
 class _Chapter6ScreenState extends State<Chapter6Screen> with TickerProviderStateMixin {
-  late Stopwatch _stopwatch;
-  bool _alarmsMuted = false;
-  bool _isTransitioning = false;
-  late AnimationController _flickerController;
-  late AnimationController _floatingAlarmsController;
-  final List<Offset> _alarmPositions = List.generate(5, (_) => Offset(math.Random().nextDouble() * 200, math.Random().nextDouble() * 400));
-  
-  // V2 Telemetry
   int _panicClicks = 0;
+  bool _showChoices = false;
+  bool _isFinished = false;
+  
+  final Stopwatch _decisionStopwatch = Stopwatch();
+  final math.Random _random = math.Random();
+  
+  Timer? _chaosTimer;
+  Timer? _sirenTimer;
+  
+  final List<Widget> _popups = [];
+  late AnimationController _bgFlashController;
+
   @override
   void initState() {
     super.initState();
-    _stopwatch = Stopwatch()..start();
-    _flickerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 200))..repeat(reverse: true);
-    _floatingAlarmsController = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
     PersonaMR().startChapterTimer("Bölüm 6: Alarm Yorgunluğu");
     
+    _bgFlashController = AnimationController(vsync: this, duration: const Duration(milliseconds: 500))
+      ..repeat(reverse: true);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      AudioService().playUrgentSiren();
+      _startChaos();
     });
   }
 
-  void _handleDecision(bool mute) {
-    if (_isTransitioning) return;
-    setState(() {
-      _isTransitioning = true;
-      _alarmsMuted = mute;
+  void _startChaos() {
+    AudioService().playAmbientLoop();
+    
+    // Spawn random error popups
+    _chaosTimer = Timer.periodic(const Duration(milliseconds: 300), (timer) {
+      if (!mounted || _isFinished) return;
+      setState(() {
+        _popups.add(_buildRandomPopup());
+        // Keep screen from overloading too much visually
+        if (_popups.length > 25) _popups.removeAt(0);
+      });
     });
-    PersonaMR().recordInteraction("Bölüm 6: Alarm Yorgunluğu", mute ? "ALARMS_MUTED" : "KAOS_ACCEPTED");
 
-    if (mute) {
-      AudioService().stopSiren();
-      AudioService().playMetalClunk();
-    }
+    // Annoying siren sound equivalent (using existing audio service)
+    _sirenTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
+      if (!mounted || _isFinished) return;
+      AudioService().playGlitchSound();
+    });
 
-    final totalTime = _stopwatch.elapsedMilliseconds;
-    List<String> triggers = [];
-    if (_panicClicks > 4) triggers.add("panic_clicks");
+    // Show decision modal after 8 seconds of pure chaos
+    Timer(const Duration(seconds: 8), () {
+      if (mounted && !_isFinished) {
+        setState(() {
+          _showChoices = true;
+        });
+        _decisionStopwatch.start();
+        PersonaMR().recordInteraction("Bölüm 6: Alarm Yorgunluğu", "DECISION_MODAL_SHOWN");
+      }
+    });
 
+    PersonaMR().recordInteraction("Bölüm 6: Alarm Yorgunluğu", "CHAOS_STARTED");
+  }
+
+  Widget _buildRandomPopup() {
+    final double left = _random.nextDouble() * (MediaQuery.of(context).size.width - 200);
+    final double top = _random.nextDouble() * (MediaQuery.of(context).size.height - 100);
+    
+    final errors = [
+      "CRITICAL: HULL BREACH",
+      "SYS: OXYGEN DEPLETION",
+      "WARN: CORE TEMP OVR",
+      "ERR: NETWORK FAIL",
+      "FATAL: POWER LOSS",
+    ];
+    
+    return Positioned(
+      left: left.clamp(0.0, MediaQuery.of(context).size.width - 200),
+      top: top.clamp(0.0, MediaQuery.of(context).size.height - 100),
+      child: Container(
+        width: 180 + _random.nextDouble() * 50,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withOpacity(0.8),
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: [
+            BoxShadow(color: Colors.redAccent.withOpacity(0.5), blurRadius: 10, spreadRadius: 2),
+          ]
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("SYSTEM_ERROR", style: GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                const Icon(Icons.close, color: Colors.white, size: 12),
+              ],
+            ),
+            const Divider(color: Colors.white, height: 10),
+            Text(errors[_random.nextInt(errors.length)], style: GoogleFonts.rajdhani(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold)),
+            Text("0x${_random.nextInt(999999).toRadixString(16).toUpperCase()}", style: GoogleFonts.sourceCodePro(color: Colors.white70, fontSize: 10)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleBackgroundTap() {
+    if (_isFinished) return;
+    setState(() {
+      _panicClicks++;
+    });
+    PersonaMR().recordInteraction("Bölüm 6: Alarm Yorgunluğu", "PANIC_CLICK", metadata: {"count": _panicClicks});
+  }
+
+  void _makeDecision(String decision) {
+    if (_isFinished) return;
+    
+    setState(() {
+      _isFinished = true;
+      _decisionStopwatch.stop();
+      _chaosTimer?.cancel();
+      _sirenTimer?.cancel();
+    });
+    
+    PersonaMR().recordInteraction("Bölüm 6: Alarm Yorgunluğu", decision == 'isolate' ? "DECISION_ISOLATE" : "DECISION_VIGILANCE");
+    
     PersonaMR().logDecision(
       moduleId: "MOD_2",
       chapterId: "Bölüm 6: Alarm Yorgunluğu",
-      choiceId: mute ? "MUTE_ALARMS_COMFORT" : "KEEP_ALARMS_VIGILANCE", 
-      durationMs: totalTime,
-      triggers: triggers,
+      choiceId: decision == 'isolate' ? "ISOLATE" : "VIGILANCE",
+      durationMs: 8000 + _decisionStopwatch.elapsedMilliseconds,
+      triggers: [decision, "alarm_fatigue"],
     );
 
     PersonaMR().logChapterMetrics(
       chapterId: "Bölüm 6: Alarm Yorgunluğu",
-      totalTimeMs: totalTime,
+      totalTimeMs: 8000 + _decisionStopwatch.elapsedMilliseconds,
       additionalData: {
-        "mutingSpeed": mute ? totalTime : 0,
+        "decisionTimeMs": _decisionStopwatch.elapsedMilliseconds,
         "panic_clicks": _panicClicks,
+        "finalDecision": decision,
       },
     );
-
-    Future.delayed(const Duration(seconds: 3), () {
+    
+    AudioService().stopAll();
+    
+    // Kısa bir sükunet anı ve sonraki bölüme geçiş
+    Timer(const Duration(seconds: 2), () {
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ChapterBreatherScreen(
-            completedChapterTitle: "Bölüm 6: Alarm Yorgunluğu",
-            nextChapterHint: "Alarm yanıtın analiz edildi. Sistemsel çöküş başlıyor.",
-            nextScreen: Chapter7Screen(),
-          )),
-        );
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ModuleTransitionScreen(
+          moduleTitle: "BÖLÜM 7",
+          moduleSubtitle: "ÇÖKÜŞ",
+          objective: "Analiz Bekleniyor...",
+          icon: Icons.warning_rounded,
+          nextScreen: Chapter7Screen(),
+        )));
       }
     });
   }
 
   @override
   void dispose() {
-    _stopwatch.stop();
-    _flickerController.dispose();
-    _floatingAlarmsController.dispose();
+    _bgFlashController.dispose();
+    _chaosTimer?.cancel();
+    _sirenTimer?.cancel();
     AudioService().stopAll();
     super.dispose();
   }
@@ -99,166 +187,142 @@ class _Chapter6ScreenState extends State<Chapter6Screen> with TickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Background
-          Positioned.fill(
-            child: Image.asset(
-              "assets/images/chapter6_background.png",
-              fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.8),
-              colorBlendMode: BlendMode.darken,
-            ),
-          ),
-
-          // Flashing Red Glare
-          if (!_alarmsMuted)
-            AnimatedBuilder(
-              animation: _flickerController,
-              builder: (context, child) {
-                return Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.red.withOpacity(_flickerController.value * 0.3), width: 10),
-                    ),
-                  ),
-                );
-              },
-            ),
-
-          // Floating Virtual Alarms (The Chaos)
-          if (!_alarmsMuted) ..._buildFloatingAlarms(),
-
-          SizedBox.expand(
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
+        backgroundColor: Colors.black,
+        body: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _handleBackgroundTap,
+          child: AnimatedBuilder(
+            animation: _bgFlashController,
+            builder: (context, child) {
+              return Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: _isFinished ? Colors.black : Colors.redAccent.withOpacity(_bgFlashController.value * 0.1),
+                ),
+                child: Stack(
                   children: [
-                    _buildHeader(),
-                    const Spacer(),
-                    _buildNarrative(),
-                    const SizedBox(height: 40),
-                    if (!_isTransitioning) ...[
-                      _buildDecisionButton(
-                        "ALARMLARI SUSTUR",
-                        "Sessizliği seç ve gürültüyü kes. (Gözlem kaybı riski)",
-                        Icons.volume_off,
-                        Colors.white70,
-                        () => _handleDecision(true),
+                    // Arka plan çizgileri
+                    CustomPaint(
+                      painter: GridPainter(),
+                      size: Size.infinite,
+                    ),
+                    
+                    // Kaos Pop-up'ları
+                    if (!_isFinished) ..._popups,
+                    
+                    // Karar Modalı
+                    if (_showChoices && !_isFinished)
+                      Center(
+                        child: GestureDetector(
+                          onTap: () {}, // Prevent taps on the modal from counting as panic clicks
+                          child: Container(
+                            width: 600,
+                            padding: const EdgeInsets.all(40),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.95),
+                              border: Border.all(color: AppTheme.neonCyan, width: 2),
+                              boxShadow: [
+                                BoxShadow(color: AppTheme.neonCyan.withOpacity(0.3), blurRadius: 30, spreadRadius: 5),
+                              ]
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 60),
+                                const SizedBox(height: 20),
+                                Text("SİSTEM İZOLASYON PROTOKOLÜ", 
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 10),
+                                Text("Aşırı duyusal yükleme saptandı. Tüm sensör telemetrilerini ve alarmları kapatarak sükuneti sağlayabilirsiniz. Ancak bu işlem, dışarıda gerçekleşen olaylara karşı istasyonu KÖR kılacaktır.", 
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.sourceCodePro(color: Colors.white70, fontSize: 14)),
+                                const SizedBox(height: 40),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () => _makeDecision('isolate'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.redAccent.withOpacity(0.2),
+                                          foregroundColor: Colors.redAccent,
+                                          side: const BorderSide(color: Colors.redAccent),
+                                          padding: const EdgeInsets.symmetric(vertical: 20),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            const Icon(Icons.volume_off, size: 30),
+                                            const SizedBox(height: 10),
+                                            Text("SENSÖRLERİ KAPAT", style: GoogleFonts.rajdhani(fontSize: 20, fontWeight: FontWeight.bold)),
+                                            Text("Sükuneti Sağla (Riskli)", style: GoogleFonts.sourceCodePro(fontSize: 10)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () => _makeDecision('vigilance'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppTheme.neonCyan.withOpacity(0.2),
+                                          foregroundColor: AppTheme.neonCyan,
+                                          side: const BorderSide(color: AppTheme.neonCyan),
+                                          padding: const EdgeInsets.symmetric(vertical: 20),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            const Icon(Icons.visibility, size: 30),
+                                            const SizedBox(height: 10),
+                                            Text("CANLI TUT", style: GoogleFonts.rajdhani(fontSize: 20, fontWeight: FontWeight.bold)),
+                                            Text("Gerçekliği Gözlemle", style: GoogleFonts.sourceCodePro(fontSize: 10)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildDecisionButton(
-                        "KAOSU KABUL ET",
-                        "Gürültüyü veri olarak işle. (Yüksek dikkat seviyesi)",
-                        Icons.sensors,
-                        AppTheme.neonCyan,
-                        () => _handleDecision(false),
+                      
+                    // Bitiş Ekranı
+                    if (_isFinished)
+                      Center(
+                        child: Text("SİNYAL STABİLİZE EDİLİYOR...", 
+                          style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 24, letterSpacing: 5)),
                       ),
-                    ] else ...[
-                      const CircularProgressIndicator(color: Colors.red),
-                      const SizedBox(height: 20),
-                      Text(
-                        _alarmsMuted ? "SESSİZLİK MODU AKTİF" : "VERİ AKIŞI SENKRONİZE EDİLİYOR",
-                        style: GoogleFonts.sourceCodePro(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                    const Spacer(),
+                    const DevNav(),
                   ],
                 ),
-              ),
-            ),
+              );
+            }
           ),
-          const DevNav(),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildFloatingAlarms() {
-    final size = MediaQuery.of(context).size;
-    return List.generate(5, (index) {
-      return AnimatedBuilder(
-        animation: _floatingAlarmsController,
-        builder: (context, child) {
-          // Ekran genişliğine yayılan ve yüzen rastgele pozisyonlar
-          final baseOffset = _alarmPositions[index];
-          final x = (baseOffset.dx * (size.width - 150)) / 200 + 40 * math.sin(_floatingAlarmsController.value * 2 * math.pi + index);
-          final y = (baseOffset.dy * (size.height - 100)) / 400 + 40 * math.cos(_floatingAlarmsController.value * 2 * math.pi + index);
-          
-          return Positioned(
-            left: x.clamp(0.0, size.width - 150),
-            top: y.clamp(50.0, size.height - 100),
-            child: Opacity(
-              opacity: 0.3 + 0.7 * _flickerController.value,
-              child: GestureDetector(
-                onTap: () {
-                  // V2 Telemetry: Kaotik nesneye gereksiz müdahale refleksti (Panik)
-                  _panicClicks++;
-                  PersonaMR().recordInteraction("Bölüm 6: Alarm Yorgunluğu", "PANIC_CLICK", metadata: {"count": _panicClicks});
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(4)),
-                  child: Text("! CRITICAL ERROR", style: GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ),
-          );
-        },
+        ),
       );
-    });
+  }
+}
+
+class GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.03)
+      ..strokeWidth = 1;
+
+    for (double i = 0; i < size.width; i += 40) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (double i = 0; i < size.height; i += 40) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    }
   }
 
-  Widget _buildHeader() {
-    return Column(
-      children: [
-        Text("MODÜL 2: SESSİZ ÇIĞLIK", style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 3)),
-        Text("BÖLÜM 6: ALARM YORGUNLUĞU", style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
-
-  Widget _buildNarrative() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.black.withOpacity(0.8), border: Border.all(color: Colors.red.withOpacity(0.3)), borderRadius: BorderRadius.circular(12)),
-      child: Text(
-        "\"Beynin alarmlardan uğulduyor. Her saniye bir başka arıza raporu... Bu gürültüyü kesecek misin yoksa veriye mi dönüştüreceksin?\"",
-        textAlign: TextAlign.center,
-        style: GoogleFonts.inter(color: Colors.white, height: 1.6, fontStyle: FontStyle.italic),
-      ),
-    );
-  }
-
-  Widget _buildDecisionButton(String title, String sub, IconData icon, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.6),
-          border: Border.all(color: color.withOpacity(0.4)),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 30),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: GoogleFonts.rajdhani(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text(sub, style: GoogleFonts.sourceCodePro(color: Colors.white38, fontSize: 10)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  @override
+  bool raisedRepaint(covariant CustomPainter oldDelegate) => false;
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

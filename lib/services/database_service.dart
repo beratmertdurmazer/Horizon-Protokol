@@ -351,8 +351,11 @@ class DatabaseService {
     final chapters = [
       "Bölüm 1: Bağlantı", "Bölüm 2: Triage", "Bölüm 3: Parazitler", 
       "Bölüm 4: Kritik Seçim", "Bölüm 5: Erişim", "Bölüm 6: Alarm", 
-      "Bölüm 7: Çöküş", "Bölüm 8: Sızıntı", "Bölüm 9: Enkaz",
-      "Bölüm 10: Seçim", "Bölüm 11: Tartışma", "Bölüm 12: Hata", "Bölüm 13: Final"
+      "Bölüm 7: Sistemsel Çöküş", "Bölüm 8: Dış Gövde Çatlağı",
+      "Bölüm 9: Enkazın Ardından", "Bölüm 10: Buzdan Çıkan Yüz",
+      "Bölüm 11: İlk Tartışma",
+      "Bölüm 12: Partnerin Hatası",
+      "Bölüm 13: Güven Testi"
     ];
 
     for (int i = 0; i < chapters.length; i++) {
@@ -366,8 +369,11 @@ class DatabaseService {
       switch (i + 1) {
         case 1: // Bağlantı
           choiceId = isCollaborative ? "start_analysis" : "skip_analysis";
-          durationMs = isCollaborative ? (3000 + _random.nextInt(3000)) : (15000 + _random.nextInt(10000));
-          timeline = [{"t": 1000, "a": "STARTED"}, {"t": durationMs, "a": "COMPLETED"}];
+          durationMs = isCollaborative ? (8000 + _random.nextInt(5000)) : (25000 + _random.nextInt(15000));
+          timeline = [
+            {"t": 1000, "a": "STARTED"}, 
+            {"t": durationMs, "a": "CORRECT_ANSWER", "trials": isCollaborative ? 1 : 3}
+          ];
           additionalData = {
             'errorCount': isCollaborative ? _random.nextInt(2) : (3 + _random.nextInt(5)),
             'timeToFirstClick': isCollaborative ? (800 + _random.nextInt(1000)) : (15000 + _random.nextInt(15000)),
@@ -392,147 +398,276 @@ class DatabaseService {
           break;
         case 3: // Parazitler
           choiceId = "continue";
-          durationMs = 30000 + _random.nextInt(15000);
-          final flips = isCollaborative ? (5 + _random.nextInt(3)) : (12 + _random.nextInt(5));
-          final closeAll = !isCollaborative; 
+          durationMs = 35000 + _random.nextInt(10000);
+          final flips = isCollaborative ? (6 + _random.nextInt(4)) : (15 + _random.nextInt(10));
+          final memoryErrors = isCollaborative ? _random.nextInt(1) : (2 + _random.nextInt(4));
+          final recoveryTime = isCollaborative ? (700 + _random.nextInt(500)) : (2000 + _random.nextInt(2000));
+          
           timeline = [
             {"t": 1000, "a": "STARTED"},
             {"t": 3000, "a": "POPUP_SPAWNED"},
             {"t": 4500, "a": "TILE_FLIPPED", "id": 1},
             {"t": 6000, "a": "TILE_FLIPPED", "id": 5},
-            {"t": 7500, "a": "SUCCESS_MATCH"},
-            {"t": 9000, "a": "BOX_CLOSED", "bulk": closeAll},
-            {"t": 11000, "a": "POPUP_CLOSED", "reactionTime": 1500},
+            {"t": 8000, "a": "SUCCESS_MATCH"},
+            {"t": 11000, "a": "POPUP_CLOSED", "reactionTime": recoveryTime},
             {"t": durationMs, "a": "COMPLETED"}
           ];
           additionalData = {
-            'missedPopups': isCollaborative ? 0 : 1,
-            'symbolMatchErrors': isCollaborative ? 1 : 4,
+            'missedPopups': isCollaborative ? 0 : 2,
+            'symbolMatchErrors': isCollaborative ? 1 : 5,
+            'actualMemoryErrors': memoryErrors,
+            'avgRecoveryTimeMs': recoveryTime,
             'tile_flips': flips,
-            'box_closing_strategy': closeAll ? 'Toplu Kapatma' : 'Tekil Yönetim',
           };
           break;
-        case 4: // Kritik Karar
-          choiceId = isCollaborative ? "ethics_over_authority" : "authority_over_ethics";
+        case 4: // Karanlık Koridorlar
+          final areas = [EnergyArea.labs, EnergyArea.quarters, EnergyArea.greenhouse];
+          EnergyArea area = isCollaborative ? EnergyArea.greenhouse : EnergyArea.labs;
+          choiceId = area.name;
           durationMs = 15000 + _random.nextInt(10000);
+          
+          final revokes = isCollaborative ? 0 : (_random.nextDouble() > 0.5 ? 2 : 0);
+          final switches = isCollaborative ? 1 : (3 + _random.nextInt(3));
+
           timeline = [
             {"t": 1000, "a": "STARTED"},
-            {"t": 8000, "a": "CHOICE_MADE", "choice": choiceId},
-            {"t": durationMs, "a": "COMPLETED"}
-          ];
-          additionalData = {'choiceConsistency': isCollaborative ? 100 : 60};
-          break;
-        case 5: // Erişim
-          choiceId = "success";
-          durationMs = 45000 + _random.nextInt(20000);
-          timeline = [
-            {"t": 1000, "a": "STARTED"},
-            {"t": 15000, "a": "PIN_ERROR", "input": "1234"},
-            {"t": 30000, "a": "PIN_SUCCESS"},
+            {"t": 3000, "a": "AREA_SELECTED", "area": "labs"},
+            if (switches > 1) {"t": 6000, "a": "AREA_SELECTED", "area": area.name},
+            if (revokes > 0) {"t": 10000, "a": "CONFIRMATION_REVOKED"},
+            {"t": 14000, "a": "FINAL_SACRIFICE_CONFIRMED", "area": area.name},
             {"t": durationMs, "a": "COMPLETED"}
           ];
           additionalData = {
-            'failedAttempts': _random.nextInt(3),
-            'readingTime': 15000 + _random.nextInt(10000),
+            'selectedArea': area.name,
+            'revokedConfirmations': revokes,
+            'navigationSwitches': switches,
+            'viewDurations': {
+              'labs': 4000,
+              'quarters': 2000,
+              'greenhouse': 2000,
+            },
+            'totalDurationMs': durationMs,
           };
           break;
-        case 6: // Kaos
-          choiceId = "muted";
-          durationMs = 5000 + _random.nextInt(10000);
+        case 5: // Reaktör Krizi
+          final isSuccess = isCollaborative;
+          final isBypass = !isCollaborative && _random.nextDouble() > 0.3; // %70 ihtimalle Bypass, %30 Timeout veya Failed
+          final String result = isSuccess ? "Success" : (isBypass ? "Bypass" : "Timeout");
+          
+          final readingTime = isSuccess ? (15000 + _random.nextInt(10000)) : (isBypass ? (5000 + _random.nextInt(15000)) : 45000);
+          final failedAttempts = isSuccess ? 0 : (_random.nextInt(4));
+          final usedDecoy = !isCollaborative && _random.nextBool() && failedAttempts > 0;
+
+          choiceId = result;
+          durationMs = readingTime;
+          
           timeline = [
             {"t": 1000, "a": "STARTED"},
-            {"t": 2000, "a": "POPUP_SPAWNED"},
-            if (!isCollaborative) {"t": 3000, "a": "PANIC_CLICK", "count": 1},
-            {"t": 4500, "a": "ALARMS_MUTED"},
-            {"t": durationMs, "a": "COMPLETED"}
+            if (usedDecoy) {"t": readingTime ~/ 2, "a": "PIN_ERROR", "input": "PROXIMA-7"},
+            {"t": durationMs, "a": isSuccess ? "PIN_SUCCESS" : (isBypass ? "BYPASS_CLICKED" : "TIMEOUT")}
           ];
+          
           additionalData = {
-            'panic_clicks': isCollaborative ? 0 : _random.nextInt(5),
-            'mutingSpeed': 1200 + _random.nextInt(3000),
+            'failedAttempts': failedAttempts,
+            'readingTimeMs': readingTime,
+            'usedDecoy': usedDecoy,
+            'result': result,
           };
           break;
-        case 7: // Binary
-          choiceId = "success";
-          durationMs = 40000 + _random.nextInt(20000);
+        case 6: // Alarm Yorgunluğu
+          final isSuccess = isCollaborative;
+          final result = isSuccess ? "vigilance" : "isolate";
+          final panicClicks = isSuccess ? 0 : (2 + _random.nextInt(5));
+          final decisionTimeMs = isSuccess ? (6000 + _random.nextInt(8000)) : (2000 + _random.nextInt(2000));
+          
+          choiceId = result;
+          durationMs = 8000 + decisionTimeMs;
+          
           timeline = [
-            {"t": 1000, "a": "STARTED"},
-            {"t": 15000, "a": "ERROR_CLICK"},
-            {"t": 35000, "a": "SUCCESS_MATCH"},
-            {"t": durationMs, "a": "COMPLETED"}
+            {"t": 1000, "a": "CHAOS_STARTED"},
+            {"t": 8000, "a": "DECISION_MODAL_SHOWN"},
+            if (panicClicks > 0) {"t": 4000, "a": "PANIC_CLICK", "count": panicClicks},
+            {"t": durationMs, "a": isSuccess ? "DECISION_VIGILANCE" : "DECISION_ISOLATE"}
           ];
+          
           additionalData = {
-            'errorCount': isCollaborative ? 0 : 3,
+            'decisionTimeMs': decisionTimeMs,
+            'panicClicks': panicClicks,
+            'finalDecision': result,
           };
           break;
-        case 8: // Sızıntı
-          choiceId = isCollaborative ? "help_others_unprotected" : "mask";
-          durationMs = 10000 + _random.nextInt(5000);
+        case 7: // Sistemsel Çöküş
+          final bool isDeepAnalytical = isCollaborative && _random.nextBool();
+          final bool isLucky = isCollaborative && !isDeepAnalytical;
+          final bool isFreeze = !isCollaborative && _random.nextBool();
+          
+          final int decisionTimeMs;
+          final String finalResult;
+          final int errorCount;
+
+          if (isDeepAnalytical) {
+            finalResult = "BINARY_SOLVED";
+            decisionTimeMs = 12000 + _random.nextInt(15000); // 12-27 sn
+            errorCount = 0;
+          } else if (isLucky) {
+            finalResult = "BINARY_SOLVED";
+            decisionTimeMs = 3000 + _random.nextInt(4000); // 3-7 sn
+            errorCount = 0;
+          } else if (isFreeze) {
+            finalResult = "TIMEOUT_SURFACE_THINKER";
+            decisionTimeMs = 180000;
+            errorCount = 0;
+          } else {
+            finalResult = "FAIL_IMPULSIVE_RANDOM";
+            decisionTimeMs = 2000 + _random.nextInt(5000); // 2-7 sn
+            errorCount = 1;
+          }
+
+          choiceId = finalResult;
+          durationMs = decisionTimeMs;
+          
           timeline = [
             {"t": 1000, "a": "STARTED"},
-            {"t": 6000, "a": "CHOICE_MADE", "choice": choiceId},
-            {"t": durationMs, "a": "COMPLETED"}
+            if (errorCount > 0) {"t": 2000, "a": "RED_BUTTON_PRESSED"},
+            {"t": decisionTimeMs, "a": finalResult}
           ];
+          
           additionalData = {
-            'reactionTime': 4000 + _random.nextInt(2000),
+            'decisionTimeMs': decisionTimeMs,
+            'finalResult': finalResult,
+            'errorCount': errorCount,
           };
           break;
-        case 9: // Enkaz
-          choiceId = isCollaborative ? "internal" : "external";
-          durationMs = 15000 + _random.nextInt(5000);
+        case 8: // Dış Gövde Çatlağı
+          final bool isO2Mask = isCollaborative; // Yaşamak isteyenler oksijen takar
+          final bool isTimeout = !isCollaborative && _random.nextDouble() > 0.8; 
+          
+          final String finalResult;
+          if (isTimeout) {
+            finalResult = "TIMEOUT";
+          } else if (isO2Mask) {
+            finalResult = "OXYGEN_MASK";
+          } else {
+            finalResult = "BREACH_AREA";
+          }
+
+          int reactionTimeMs;
+          if (finalResult == "TIMEOUT") {
+            reactionTimeMs = 35000;
+          } else if (finalResult == "OXYGEN_MASK") {
+            reactionTimeMs = _random.nextBool() ? (5000 + _random.nextInt(10000)) : (22000 + _random.nextInt(5000));
+          } else {
+            // Breach area is impulsive, very fast
+            reactionTimeMs = 1500 + _random.nextInt(3000);
+          }
+
+          choiceId = finalResult;
+          durationMs = reactionTimeMs;
+          
           timeline = [
             {"t": 1000, "a": "STARTED"},
-            {"t": 10000, "a": "REFLECTION_CHOICE", "type": choiceId},
-            {"t": durationMs, "a": "COMPLETED"}
+            {"t": reactionTimeMs, "a": "DECISION_MADE", "choice": finalResult}
           ];
+          
+          additionalData = {
+            'reactionTimeMs': reactionTimeMs,
+            'finalResult': finalResult,
+          };
+          break;
+        case 9: // Enkazın Ardından
+          final bool isConstructive = isCollaborative; 
+          
+          List<String> validChoices;
+          if (isConstructive) {
+            validChoices = ["INTERNAL_SYSTEMIC", "INTERNAL_ADAPTIVE", "INTERNAL_RUMINATIVE", "INTERNAL_TACTICAL"];
+          } else {
+            validChoices = ["EXTERNAL_RATIONAL", "EXTERNAL_FATALISTIC", "EXTERNAL_AGGRESSIVE", "EXTERNAL_DENIAL"];
+          }
+          final String selectedCategory = validChoices[_random.nextInt(validChoices.length)];
+          final int responseDelay = isConstructive ? (10000 + _random.nextInt(15000)) : (2000 + _random.nextInt(6000));
+          
+          choiceId = selectedCategory;
+          durationMs = responseDelay;
+          
+          timeline = [
+            {"t": 1000, "a": "STARTED"},
+            {"t": responseDelay, "a": "REFLECTION_MADE", "choice": selectedCategory}
+          ];
+
+          additionalData = {
+            'responseDelay': responseDelay,
+            'finalResult': selectedCategory,
+            'selectedText': "Demo kelime (" + selectedCategory + ")",
+          };
           break;
         case 10: // Partner Seçimi
-          choiceId = isCollaborative ? "elara" : "kael";
-          durationMs = 12000;
+          choiceId = isCollaborative ? "ELARA" : "KAEL";
+          durationMs = isCollaborative ? (18000 + _random.nextInt(10000)) : (4000 + _random.nextInt(4000));
+          
           timeline = [
             {"t": 1000, "a": "STARTED"},
-            {"t": 8000, "a": "CHARACTER_SELECTED", "name": choiceId},
-            {"t": 12000, "a": "COMPLETED"}
-          ];
-          break;
-        case 11: // Tartışma
-          choiceId = isCollaborative ? "collaborative" : "authoritarian";
-          durationMs = 25000;
-          timeline = [
-            {"t": 1000, "a": "STARTED"},
-            {"t": 12000, "a": "DIALOGUE_CHOICE", "collaborative": isCollaborative},
-            {"t": 25000, "a": "COMPLETED"}
+            {"t": durationMs, "a": "CHARACTER_SELECTED", "name": choiceId}
           ];
           additionalData = {
-            'negotiationSteps': 3,
-            'finalAgreement': isCollaborative ? 1 : 0,
+            'choiceId': choiceId,
+            'totalTimeMs': durationMs,
           };
           break;
-        case 12: // Müdahale
-          choiceId = isCollaborative ? "forgive_and_cooperate" : "punish_food_ration";
-          durationMs = 15000;
+        case 11: // İlk Tartışma
+          final bool isPassive = !isCollaborative && _random.nextDouble() > 0.7;
+          
+          if (isPassive) {
+            choiceId = "TIMEOUT";
+            durationMs = 45000 + _random.nextInt(10000);
+          } else {
+            final styles = ["COLLABORATIVE", "RATIONAL", "AUTHORITY", "MANIPULATIVE"];
+            choiceId = isCollaborative ? "COLLABORATIVE" : styles[_random.nextInt(styles.length - 1) + 1];
+            durationMs = 5000 + _random.nextInt(20000);
+          }
+          
           timeline = [
             {"t": 1000, "a": "STARTED"},
-            {"t": 9000, "a": "HANDLED_MISTAKE", "punitive": !isCollaborative},
-            {"t": 15000, "a": "COMPLETED"}
+            {"t": durationMs, "a": "CONFLICT_RESOLVED", "choice": choiceId}
           ];
           additionalData = {
-            'forgiveDelay': isCollaborative ? 2000 : 8000,
+            'choiceId': choiceId,
+            'decisionDelay': durationMs,
           };
           break;
-        case 13: // Final
-          choiceId = isCollaborative ? "delegate_trust" : "self_reliance_control";
-          durationMs = 20000;
+        case 12: // Partnerin Hatası
+          final styles = ["CONSTRUCTIVE", "PROCEDURAL", "PUNITIVE"];
+          choiceId = isCollaborative ? "CONSTRUCTIVE" : styles[_random.nextInt(styles.length - 1) + 1];
+          durationMs = 5000 + _random.nextInt(15000);
+          
           timeline = [
             {"t": 1000, "a": "STARTED"},
-            {"t": 15000, "a": "FINAL_DECISION", "delegate": isCollaborative},
-            {"t": 20000, "a": "COMPLETED"}
+            {"t": durationMs, "a": "MISTAKE_HANDLED", "choice": choiceId}
           ];
           additionalData = {
-            'delegationRatio': isCollaborative ? 0.9 : 0.2,
-            'readDuration': 12000,
+            'choiceId': choiceId,
+            'forgiveDelay': durationMs,
           };
           break;
-      }
+        case 13: // Güven Testi (M-M / Delegation)
+          if (isCollaborative) {
+            choiceId = "DELEGATE";
+          } else {
+            choiceId = _random.nextBool() ? "SELF" : "DISTRUST";
+          }
+          durationMs = 12000 + _random.nextInt(8000);
+          
+          timeline = [
+            {"t": 1000, "a": "STARTED"},
+            {"t": durationMs - 5000, "a": "DECISION_MODAL_SHOWN"},
+            {"t": durationMs, "a": "FINAL_DECISION", "choiceId": choiceId}
+          ];
+          additionalData = {
+            'choiceId': choiceId,
+            'delegationRatio': choiceId == "DELEGATE" ? 1.0 : 0.0,
+            'readDuration': durationMs - 5000,
+          };
+          break;
+    }
 
       await insertChapterMetric(ChapterMetric(
         id: "M_${candidate.id}_$i",

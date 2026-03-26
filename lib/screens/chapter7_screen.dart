@@ -118,6 +118,8 @@ class _Chapter7ScreenState extends State<Chapter7Screen> with TickerProviderStat
       totalTimeMs: totalTime,
       additionalData: {
         "errorCount": _errorCount,
+        "decisionTimeMs": _decisionStopwatch.elapsedMilliseconds,
+        "finalResult": result == "SUCCESS_ANALYTICAL_DEPTH" ? "BINARY_SOLVED" : result,
       },
     );
 

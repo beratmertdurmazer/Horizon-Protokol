@@ -22,14 +22,15 @@ class _Chapter5ScreenState extends State<Chapter5Screen> with SingleTickerProvid
   bool _isTransitioning = false;
   Timer? _countdownTimer;
   Timer? _heartbeatTimer;
-  int _secondsRemaining = 20;
+  int _secondsRemaining = 45;
   int _failedAttempts = 0;
   int? _readingTime;
+  bool _usedDecoy = false;
   bool _isFinished = false;
   final TextEditingController _pinController = TextEditingController();
   late AnimationController _flickerController;
   
-  final String _manualText = "PROXIMA-7 ACİL DURUM PROTOKOLÜ: Reaktör çekirdeği termal stabilizasyonunu kaybetmeye başladığında, soğutma sıvısı basıncı %40 seviyesinin altına inmeden önce manyetik muhafaza kilitlerinin manuel olarak serbest bırakılması birincil önceliktir. Bu işlem sırasında kontrol paneli üzerindeki sinaptik rölelerin aşırı yüklenmesini önlemek için terminal erişim yetkisi doğrulanmalıdır. Yedek kodlar sisteme sadece ana terminal üzerinden değil, acil durum fiziksel arayüzüyle de girilebilir. Aksi takdirde bypass sistemini aktive etmek zorunda kalacaksınız; bu işlem çekirdek bütünlüğünü %60 oranında riske atar ancak saniyeler kazandırır. Elektromanyetik parazitler nedeniyle ekran üzerindeki veriler bozulabilir, bu durumda analog göstergelere güvenmelisiniz. Eğer sistemi manuel olarak kilitleyemezseniz istasyonun tamamen karanlığa gömülmesi kaçınılmaz bir sondur. Bu terminalin erişim anahtarı son cümlededir. Stabilizasyon için giriş yapmanız gereken kod: HORIZON_OMEGA";
+  final String _manualText = "PROXIMA-7 ACİL DURUM PROTOKOLÜ: Reaktör çekirdeği termal stabilizasyonunu kaybetmeye başladığında, soğutma sıvısı basıncı %40 seviyesinin altına inmeden önce manyetik muhafaza kilitlerinin manuel olarak serbest bırakılması birincil önceliktir. Bu işlem sırasında kontrol paneli üzerindeki sinaptik rölelerin aşırı yüklenmesini önlemek için terminal erişim yetkisi doğrulanmalıdır. Yedek kodlar sisteme sadece ana terminal üzerinden değil, acil durum fiziksel arayüzüyle de girilebilir. Aksi takdirde bypass sistemini aktive etmek zorunda kalacaksınız; bu işlem çekirdek bütünlüğünü %60 oranında riske atar ancak saniyeler kazandırır. Elektromanyetik parazitler nedeniyle ekran üzerindeki veriler bozulabilir, bu durumda analog göstergelere güvenmelisiniz. Eğer sistemi manuel olarak kilitleyemezseniz istasyonun tamamen karanlığa gömülmesi kaçınılmaz bir sondur. Bu terminalin erişim anahtarı son cümlededir. Stabilizasyon için giriş yapmanız gereken kod: horizon_omega";
 
   @override
   void initState() {
@@ -73,7 +74,14 @@ class _Chapter5ScreenState extends State<Chapter5Screen> with SingleTickerProvid
   }
 
   void _handlePinSubmit() {
-    if (_pinController.text.trim().toUpperCase() == "HORIZON_OMEGA") {
+    final input = _pinController.text.trim().toLowerCase();
+    
+    // Tuzak Kontrolü (PROXIMA-7 ACİL DURUM PROTOKOLÜ)
+    if (input.contains("proxima") || input.contains("acil")) {
+      _usedDecoy = true;
+    }
+
+    if (input == "horizon_omega") {
       PersonaMR().recordInteraction("Bölüm 5: Reaktör Krizi", "PIN_SUCCESS");
       _endChapter("SUCCESS_PIN_SOLVED");
     } else {
@@ -81,7 +89,6 @@ class _Chapter5ScreenState extends State<Chapter5Screen> with SingleTickerProvid
       PersonaMR().recordInteraction("Bölüm 5: Reaktör Krizi", "PIN_ERROR", metadata: {"input": _pinController.text});
       AudioService().playGlitchSound();
       _pinController.clear();
-      // Visual feedback for wrong PIN could go here
     }
   }
 
@@ -109,12 +116,18 @@ class _Chapter5ScreenState extends State<Chapter5Screen> with SingleTickerProvid
       triggers: ["reactor_fix", result.toLowerCase()],
     );
 
+    String simpleResult = "Timeout";
+    if (result == "SUCCESS_PIN_SOLVED") simpleResult = "Success";
+    if (result == "SUCCESS_BYPASS_PANIC") simpleResult = "Bypass";
+
     PersonaMR().logChapterMetrics(
       chapterId: "Bölüm 5: Reaktör Krizi",
       totalTimeMs: decisionTime,
       additionalData: {
         "failedAttempts": _failedAttempts,
-        "readingTime": _readingTime ?? decisionTime,
+        "readingTimeMs": _readingTime ?? decisionTime,
+        "usedDecoy": _usedDecoy,
+        "result": simpleResult,
       },
     );
 

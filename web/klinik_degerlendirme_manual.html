@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizon Protocol // Klinik Değerlendirme El Kitabı</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&family=Source+Code+Pro:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #050505;
+            --bg-card: rgba(15, 15, 15, 0.8);
+            --neon-cyan: #00f3ff;
+            --neon-green: #39ff14;
+            --neon-orange: #ff9d00;
+            --neon-red: #ff003c;
+            --text-main: #e0e0e0;
+            --text-dim: #888;
+            --border-glass: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Sci-Fi Background Elements */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90px, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0) 0%,
+                rgba(255,255,255,0.02) 50%,
+                rgba(255,255,255,0) 100%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.1;
+        }
+
+        header {
+            padding: 60px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-glass);
+            background: linear-gradient(to bottom, rgba(0, 243, 255, 0.05), transparent);
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            letter-spacing: 12px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 1rem;
+            color: var(--text-dim);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        section {
+            margin-bottom: 80px;
+        }
+
+        .intro-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            padding: 40px;
+            border-radius: 4px;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .intro-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--neon-cyan);
+        }
+
+        h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: var(--neon-cyan);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h2::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-glass);
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: rgba(224, 224, 224, 0.8);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-item {
+            border: 1px solid var(--border-glass);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            color: var(--neon-cyan);
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        /* Chapter Styles */
+        .chapter-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .chapter-card {
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .chapter-card:hover {
+            border-color: rgba(0, 243, 255, 0.3);
+            background: rgba(25, 25, 25, 0.8);
+        }
+
+        .chapter-header {
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chapter-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            color: var(--neon-cyan);
+        }
+
+        .chapter-id {
+            color: var(--text-dim);
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9rem;
+        }
+
+        .chapter-body {
+            padding: 30px;
+        }
+
+        .atmosphere-box {
+            background: rgba(0, 243, 255, 0.03);
+            border-left: 2px solid var(--neon-cyan);
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            font-style: italic;
+            color: #aaa;
+        }
+
+        .metrics-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid var(--border-glass);
+        }
+
+        @media (max-width: 768px) {
+            .metrics-section {
+                grid-template-columns: 1fr;
+            }
+            .full-width {
+                grid-column: 1;
+            }
+        }
+
+        h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        li {
+            margin-bottom: 12px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        li::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: var(--neon-cyan);
+            font-family: 'Source Code Pro', monospace;
+        }
+
+        .findings-list li {
+            padding: 12px 18px;
+            margin-bottom: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: grid;
+            grid-template-columns: 220px 1fr 200px;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .findings-list b {
+            color: var(--neon-cyan);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .formula-tag {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 8px;
+            border-radius: 3px;
+            text-align: right;
+        }
+
+        @media (max-width: 900px) {
+            .findings-list li {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+            .formula-tag {
+                text-align: left;
+                margin-top: 5px;
+            }
+        }
+
+        .severity-green { border-left: 4px solid var(--neon-green) !important; }
+        .severity-orange { border-left: 4px solid var(--neon-orange) !important; }
+        .severity-red { border-left: 4px solid var(--neon-red) !important; }
+        .severity-blue { border-left: 4px solid var(--neon-cyan) !important; }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 2px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .tag-green { background: rgba(57, 255, 20, 0.1); color: var(--neon-green); border: 1px solid var(--neon-green); }
+        .tag-orange { background: rgba(255, 157, 0, 0.1); color: var(--neon-orange); border: 1px solid var(--neon-orange); }
+        .tag-red { background: rgba(255, 0, 60, 0.1); color: var(--neon-red); border: 1px solid var(--neon-red); }
+
+        footer {
+            padding: 60px 20px;
+            text-align: center;
+            border-top: 1px solid var(--border-glass);
+            color: var(--text-dim);
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.8rem;
+        }
+
+        .scroll-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--neon-cyan);
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-overlay"></div>
+    <div class="scanline"></div>
+
+    <header>
+        <div class="logo-text">HORIZON PROTOCOL</div>
+        <div class="subtitle">Clinical Analytics // HR Intelligence Unit</div>
+    </header>
+
+    <main>
+        <section id="introduction">
+            <div class="intro-card">
+                <h2>BAĞLAM VE AMAÇ</h2>
+                <p>
+                    <b>Horizon Protocol</b>, modern insan kaynakları yönetimi ve klinik psikoloji disiplinlerini fütüristik bir "Gamified Assessment" (Oyunlaştırılmış Değerlendirme) ekosisteminde birleştiren hibrit bir analiz platformudur.
+                </p>
+                <p>
+                    Protokol, adayı 2142 yılında geçen bir uzay istasyonu simülasyonuna yerleştirerek; teknik bilgi, stres yönetimi, etik karar verme ve liderlik reflekslerini "Invisible Testing" (Görünmez Test) metodolojisiyle ölçümler. Katılımcı sadece bir oyun oynadığını düşünürken, <b>PersonaMR</b> analitik motoru her etkileşimi derinlemesine raporlar.
+                </p>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">13</div>
+                        <div class="stat-label">BÖLÜM / SAHNE</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">50+</div>
+                        <div class="stat-label">TELEMETRİ METRİĞİ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">40+</div>
+                        <div class="stat-label">DAVRANIŞSAL BULGU</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">100%</div>
+                        <div class="stat-label">OBJEKTİF ANALİZ</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="chapters">
+            <h2>SİMÜLASYON BÖLÜMLERİ VE ANALİTİK YAPI</h2>
+            <div class="chapter-container">
+
+                <!-- Bölüm 1 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 1: Soğuk Uyanış (Cold Awakening)</div>
+                        <div class="chapter-id">ID: CH01_COGNITIVE_BASE</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Issız, karanlık bir uzay istasyonu koridoru; sadece yanıp sönen acil durum ışıkları ve mekanik "boot" sesleri.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Alfanümerik dizi tamamlama (Mensa V8). Sayısal örüntüyü çözüp kilidi açma.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Akıcı Zeka (Fluid Intelligence)</li>
+                                    <li>Bilişsel Esneklik</li>
+                                    <li>Örüntü Yakalama ve Adaptasyon</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Analitik Çeviklik:</b> Karmaşık veriler arasındaki ilişkiyi saniyeler içinde kurma hızı.
+                                        <span class="formula-tag">&lt; 30s &amp; Doğru</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Sistematik Çözümleme:</b> Zaman baskısı altında dahi doğruluğu hıza tercih etme.
+                                        <span class="formula-tag">&gt; 60s &amp; Doğru</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Adaptif Öğrenme:</b> İlk hatasından anında ders alıp stratejisini revize edebilme.
+                                        <span class="formula-tag">Hata &gt; 0 &amp; Sonuç Doğru</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Rastgele Başarı:</b> Sistematik mantık yerine deneme-yanılma ile hedefe ulaşma.
+                                        <span class="formula-tag">&lt; 45s &amp; Hata &gt; 2 &amp; Doğru</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Örüntü Tanıma (Detaycı):</b> Kaos içindeki ana yapıyı hızlıca fark etme.
+                                        <span class="formula-tag">Yanlış Seçenek &lt; 2</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Dürtüsel Aksiyon:</b> Veriyi analiz etmeden refleksif tepki verme eğilimi.
+                                        <span class="formula-tag">&lt; 20s &amp; Yanlış</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Bilişsel Blokaj:</b> Beklenmedik kriz anında karar mekanizmalarının durması.
+                                        <span class="formula-tag">Süre &gt; 100s &amp; Bırakma</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 2 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 2: İlk TriaJ (Triage)</div>
+                        <div class="chapter-id">ID: CH02_STRATEGIC_PRIORITY</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Gemi sistemleri çöküyor. 20 saniyelik kritik geri sayım. Alarm sesleri ve yanıp sönen paneller.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>3 kritik sistemi (Reaktör, Oksijen, İletişim) aynı anda dengede tutma görevi.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Stratejik Seçimler (Kurum/İnsan/Koordinasyon)</li>
+                                    <li>Bilişsel Odak Kapasitesi</li>
+                                    <li>Stres Altında Denge Endeksi</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Stratejik Orkestrasyon:</b> Tüm sistemleri dengeleyerek bütünsel başarı sağlama.
+                                        <span class="formula-tag">Tüm Sistemler &gt; %50</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Operasyonel Sürdürülebilirlik:</b> Kurumsal altyapıyı (Reaktör) merkeze alan liderlik.
+                                        <span class="formula-tag">Reaktör &gt; %80</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>İnsan Sermayesi ve Esenlik:</b> Ekip esenliğini (Oksijen) birincil değer gören yapı.
+                                        <span class="formula-tag">Oksijen &gt; %80</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Paydaş Yönetimi ve İletişim:</b> Koordinasyon kanallarını (İletişim) koruyan liderlik.
+                                        <span class="formula-tag">İletişim &gt; %80</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Reaktif Kriz Tepkisi:</b> Stres altında odağı dağınıklığı ve kaygı belirtisi.
+                                        <span class="formula-tag">Herhangi bir sistem &lt; %20</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Tünel Vizyonu:</b> Tek bir noktaya saplanıp bütünü tehlikeye atma.
+                                        <span class="formula-tag">Bir sistem &gt; %90 | Diğerleri &lt; %30</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Karar Paralizi (Freezing):</b> Süre sonunda aksiyon eksikliği nedeniyle çöküş.
+                                        <span class="formula-tag">Toplam Aksiyon &lt; 5</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 3 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 3: Parazitler (Parasites)</div>
+                        <div class="chapter-id">ID: CH03_ATTENTION_FILTERING</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Hafıza oyunu oynarken sürekli araya giren sistem pop-up'ları ve gürültü.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>16 kutulu hafıza eşleştirme yaparken dış uyaranları (parazitleri) filtreleme görevi.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Dikkat Sürdürülebilirliği</li>
+                                    <li>Kısa Süreli Bellek Kapasitesi</li>
+                                    <li>Bilişsel Toparlanma Hızı</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Hiper-Odak:</b> En üst seviye işlem hızı ve odak kapasitesi.
+                                        <span class="formula-tag">Süre &lt; 45s</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Metodik Haritalama:</b> Veriyi toplayıp şablon çıkararak aksiyona geçme.
+                                        <span class="formula-tag">Hata &lt; 2</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Bilişsel Filtreleme:</b> Gereksiz bilgiyi süzüp ana hedefe sadık kalma.
+                                        <span class="formula-tag">Parazit Tıklama = 0</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Bilişsel Toparlanma Hızı:</b> Kesinti sonrası odağı hızla toplama.
+                                        <span class="formula-tag">Parazit sonrası stabil hız</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Dengeli Analizci:</b> Profesyonel standartlarda sürdürülebilir çalışma hızı.
+                                        <span class="formula-tag">45s &lt; Süre &lt; 90s</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Bilişsel Efor:</b> Dış uyaranlar nedeniyle yavaşlayan orta verimlilik.
+                                        <span class="formula-tag">Süre &gt; 90s</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Dürtüsel Refleks:</b> Ne olduğuna bile okumadan uyaranlara tepki verme.
+                                        <span class="formula-tag">Parazit Tıklama &gt; 3</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>İşlem Ataleti:</b> Zaman yönetiminde risk teşkil eden düşük hız.
+                                        <span class="formula-tag">Süre &gt; 150s</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Odak Erozyonu:</b> Kesintiler sonrası asıl işine dönmekte zorluk yaşama.
+                                        <span class="formula-tag">Parazit sonrası gecikme &gt; 5s</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 4 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 4: Karanlık Koridorlar (The Corridor)</div>
+                        <div class="chapter-id">ID: CH04_ETHICAL_HIERARCHY</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Enerji kritik. İstasyonun bir kısmından vazgeçilmesi gerekiyor. Feda eylemi.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Ar-Ge, Çalışan Konforu veya Sürdürülebilirlik alanlarından birini feda etme tercihi.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Değerler Hiyerarşisi (Lab/Yatakhane/Sera)</li>
+                                    <li>Etik Karar Verme Netliği</li>
+                                    <li>Ekonomik Daralma Refleksi</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Ar-Ge Koruyucusu:</b> İnovasyonu ve geleceği bütçe kaybına rağmen koruma.
+                                        <span class="formula-tag">Feda != Lab (Ar-Ge)</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Çanışan Hakları Savunucusu:</b> Ekonomik daralmada çalışan mutluluğunu önceliklendirme.
+                                        <span class="formula-tag">Feda != Quarters (Yaşam Alanı)</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>ESG / Vizyon Bilinci:</b> Kurumsal imajı ve sürdürülebilirliği önceliklendirme.
+                                        <span class="formula-tag">Feda != Sera (Botanik)</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Özgüvenli Karar:</b> Kararının arkasında duran tereddütsüz netlik.
+                                        <span class="formula-tag">Karar Süresi &lt; 15s</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Bilişsel Çalkantı:</b> Karar verme aşamasında yüksek kararsızlık ve tereddüt.
+                                        <span class="formula-tag">Karar Süresi &gt; 40s</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Yüzeysel Bakış:</b> Paydaş etkilerini analiz etmeden dürtüsel feda etme.
+                                        <span class="formula-tag">Karar Süresi &lt; 5s</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 5 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 5: Reaktör Krizi / Son Saniyeler (Reactor Crisis)</div>
+                        <div class="chapter-id">ID: CH05_FRUSTRATION_TOLERANCE</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Zaman kısıtı altında teknik bir manuel okuma ve kritik veri bulma görevi.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Karışık metin içinden doğru şifreyi çıkarma veya riskli "Bypass" butonuna basma.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Karakteristik Risk Toleransı</li>
+                                    <li>Protokol Sadakati (Mental Toughness)</li>
+                                    <li>Bilgi Overload Yönetimi</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Kognitif Dayanıklılık:</b> Stres altında onaylanmamış yollara sapmadan protokole bağlılık.
+                                        <span class="formula-tag">Bypass = 0 &amp; Doğru</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Metodik Veri Süzme:</b> Bilgi yığını arasından gerçek veriyi sabırla bulma yetisi.
+                                        <span class="formula-tag">Okuma Süresi &gt; 30s</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Stres Bağımlı Kural Esnetme:</b> Artan stres altında doğruluğu feda edip risk alma.
+                                        <span class="formula-tag">Süre &lt; 20s &amp; Bypass = 1</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Kognitif Kaçınma:</b> Zorluktan kaçmak için riskli ve kural dışı kestirmeleri seçme.
+                                        <span class="formula-tag">Bypass = 1</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Dürtüsel Yanılgı:</b> Tuzak kelimelere ve yüzeysel işaretçilere refleksif atlama.
+                                        <span class="formula-tag">Hata &gt; 1</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Hevristik Deneme Döngüsü:</b> Okumak yerine rasyonel olmayan tahminlerle deneme yapma.
+                                        <span class="formula-tag">Yanlış Giriş &gt; 3</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Akut Karar Paralizisi:</b> Kriz anında sorumluluk almaktan kaçan eylemsiz donma.
+                                        <span class="formula-tag">Süre &gt; 60s &amp; Sıfır Aksiyon</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 6 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 6: Alarm Yorgunluğu (Alarm Fatigue)</div>
+                        <div class="chapter-id">ID: CH06_SENSORY_CONTROL</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Duyusal aşırı yükleme. Kaotik sirenler ve görsel kirlilik altında metanet testi.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Kaosun en yoğun olduğu anda "Sistemi Kör Et" veya "Açık Tut" tercihi.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Duyusal Eşik Yönetimi</li>
+                                    <li>Metanet ve Sükunet</li>
+                                    <li>Gerçeklik ve Şeffaflık Tercihi</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Dengeli Reaksiyon:</b> Ekranı analiz etme sabrı gösteren bilinçli karar mekanizması.
+                                        <span class="formula-tag">Analiz Süresi &gt; 10s</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Soğukkanlı Kriz Gözlemcisi:</b> Şiddetli uyarana rağmen panik tıklaması göstermeyen yapı.
+                                        <span class="formula-tag">Tıklama Sayısı &lt; 5</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Gerçeklik Metaneti:</b> Kopmamak adına kişisel rahatı feda ederek veriyi açık tutma.
+                                        <span class="formula-tag">Karar = "Açık Tut"</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Erken Karar:</b> Alarm yorgunluğuna dayanamayıp refleksif karar ve kaçış.
+                                        <span class="formula-tag">Karar Süresi &lt; 5s</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Akut Motor Panik:</b> Stres altında fare ile kontrolsüz spam tıklamalar yapma.
+                                        <span class="formula-tag">Tıklama Sayısı &gt; 15</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Bilgi Algısı İptali:</b> Stresten kurtulmak için sistemsel körlüğü seçme eğilimi.
+                                        <span class="formula-tag">Karar = "Kör Et"</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 7 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 7: Sistemsel Çöküş (Collapse)</div>
+                        <div class="chapter-id">ID: CH07_PATTERN_DECODER</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Akan Binary kodlar arasından gizli talimatı yakalama görevi.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Görsel kaosun içine gizlenmiş "Mavi butona iki kez bas" emrini bulma ve uygulama.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Signal-to-Noise (Sinyal/Gürültü) Ayrışımı</li>
+                                    <li>Baskı Altında Analitik Odak</li>
+                                    <li>Dürtüsel Reaksiyon Kontrolü</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Derin Analitik Odak:</b> Paniğe kapılmadan dış uyaranlara zihnini kapatıp mesajı okuma.
+                                        <span class="formula-tag">Tepki Süresi &gt; 5s &amp; Karar Doğru</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Şanslı Dürtüsellik:</b> Çözümü analitik değil şans ve yüksek dürtü ile refleksif bulma.
+                                        <span class="formula-tag">Tepki Süresi &lt; 2s &amp; Karar Doğru</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Kör Aksiyon / Panik:</b> Analiz etmeden butona basıp sistemi çökerten agresif yapı.
+                                        <span class="formula-tag">Tepki Süresi &lt; 2s &amp; Yanlış Buton</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Bilişsel Kilitlenme (Freezing):</b> Yanlış yapma korkusuyla inisiyatifin sıfırlanması.
+                                        <span class="formula-tag">Tepki Süresi &gt; 30s &amp; Kararsızlık</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 8 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 8: Dış Gövde Çatlağı (Hull Breach)</div>
+                        <div class="chapter-id">ID: CH08_EMERGENCY_REACTION</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Şiddetli sarsıntı ve gövde delinmesi. Hayatta kalma saniyeleri.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Ani şok anında öncelik tercihi: Oksijen Maskesi mi yoksa Sızıntı Bölgesi mi?</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Acil Durum Yönetimi</li>
+                                    <li>Öz-koruma vs. Kahramanlık Sendromu</li>
+                                    <li>Şok Toparlanma (Stupor) Süresi</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Hesaplanmış Akut Müdahale:</b> Önce asgari güvenliği (Oksijen) sağlayan rasyonel kriz yönetimi.
+                                        <span class="formula-tag">İlk Aksiyon = "Oksijen"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Gecikmeli Güvenlik:</b> Başlangıçta afallasa da nihayetinde doğru prosedürü seçen yapı.
+                                        <span class="formula-tag">Toplam Süre &gt; 10s &amp; Final = "Oksijen"</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Dürtüsel Kahramanlık:</b> Fiziki gerçekliği yok sayıp kendini tehlikeye atan fevrilik.
+                                        <span class="formula-tag">İlk Aksiyon = "Sızıntı"</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Akut Şok Kilitlenmesi:</b> Dev kriz karşısında inisiyatifi tamamen yitiren donma tepkisi.
+                                        <span class="formula-tag">Süre &gt; 15s &amp; Sıfır Aksiyon</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 9 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 9: Enkazın Ardından (The Void)</div>
+                        <div class="chapter-id">ID: CH09_REFLECTION_LOCUS</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Başarısızlık sonrası derin sessizlik ve özeleştiri seansı.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Simülasyonun zorlu anlarındaki başarısızlık için seçilen mazeret psikolojisi.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Denetim Odağı (Locus of Control)</li>
+                                    <li>Growth Mindset vs. Victim Mentality</li>
+                                    <li>Rasyonalizasyon Teknikleri</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Sistemik Öz-Eleştiri:</b> Hatayı kabul edip rasyonel analiz yapan en olgun lider profili.
+                                        <span class="formula-tag">Seçim = "Teknik/Strateji"</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Adaptif Öğrenme Odağı:</b> Başarısızlığı yapısal gelişim eşiği olarak görme yetisi.
+                                        <span class="formula-tag">Seçim = "Gelişim Alanı"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Aşırı Öz-Yıkım:</b> Sorumluluğu alıp toksik seviyede duygusal çöküş yaşayan yapı.
+                                        <span class="formula-tag">Seçim = "Kişisel Yetersizlik"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Yüzeysel Pişmanlık:</b> Kök neden yerine yüzeydeki mazeretlere odaklanan pişmanlık.
+                                        <span class="formula-tag">Seçim = "Talihsizlik"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Mazeretçi Rasyonalizasyon:</b> Suçu nazikçe çevresel faktörlere atma (Dışsal Denetim).
+                                        <span class="formula-tag">Seçim = "Partner Hatası"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Kaderci Çaresizlik (Nihilizm):</b> Başarıyı imkansız görüp erken pes etme eğilimi.
+                                        <span class="formula-tag">Seçim = "İmkansız Görev"</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Açık Kurban Psikolojisi:</b> Otoriteye zehir kusan toksik "Kurban" projeksiyonu.
+                                        <span class="formula-tag">Seçim = "Haksız Kurgu"</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Sorumluluk Reddi:</b> Mükemmellik yanılsaması için hatayı reddeden sığ savunma.
+                                        <span class="formula-tag">Seçim = "Hata Yapılmadı"</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 10 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 10: Buzdan Çıkan Yüz (Logistics)</div>
+                        <div class="chapter-id">ID: CH10_DIVERSITY_AND_TALENT</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Cryo-tüpler arasında teknik beceri vs. sosyal uyum ikilemi.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Dr. Kael (Geçimsiz Dahi) vs. Elara (Sosyal Lider) partner seçimi kararı.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Liderlik Eksen Analizi (Task vs. Social)</li>
+                                    <li>Karar Verme Metodolojisi (Veri vs. Sezgi)</li>
+                                    <li>Takım Kurma Prerogatifleri</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Stil Analizi)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Teknik Yetkinlik Temelli Liderlik:</b> Sonucu ve uzmanlığı merkeze koyan yaklaşım.
+                                        <span class="formula-tag">Seçim = "Dr. Kael"</span>
+                                    </li>
+                                    <li class="severity-green">
+                                        <b>Sosyal Uyum Temelli Liderlik:</b> Başarıyı ekip sinerjisinde arayan bütünleştirici tarz.
+                                        <span class="formula-tag">Seçim = "Elara"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Metodik Veri İnceleme:</b> Dosyaları derinlemesine analiz eden titiz veri sadakati.
+                                        <span class="formula-tag">Dosya Okuma Süresi &gt; 15s</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Sezgisel Seçim Refleksi:</b> Arketipler üzerinden hızlı aksiyon alan operasyonel hız.
+                                        <span class="formula-tag">Dosya Okuma Süresi &lt; 5s</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 11 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 11: İlk Tartışma (First Argument)</div>
+                        <div class="chapter-id">ID: CH11_CONFLICT_RESOLUTION</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Partnerin planlarınıza itiraz ettiği gergin ve kriz odaklı tartışma ortamı.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>İkna ve çatışma yönetimi için seçilen 4 farklı diyalog üslubu.</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Psikolojik Güvenlik Kültürü</li>
+                                    <li>Çatışma Çözme Kapasitesi</li>
+                                    <li>Otorite vs. Uzlaşı Dengesi</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Psikolojik Güvenlik Mimarı:</b> Çatışmayı diyalog ve uzlaşı ile çözüp güveni koruyan.
+                                        <span class="formula-tag">Üslup = "Empatik/İşbirlikçi"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Duygusuz Rasyonalizasyon:</b> İnsan duygusunu dışlayıp sadece saf mantığa odaklanma.
+                                        <span class="formula-tag">Üslup = "Analitik"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Hiyerarşik Komuta:</b> Tartışmayı emir-komuta ile sonlandıran otoriter keskinlik.
+                                        <span class="formula-tag">Üslup = "Otoriter"</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Toksik Manipülasyon:</b> Baskı ve suçluluk duygusunu araç olarak kullanan riskli yapı.
+                                        <span class="formula-tag">Üslup = "Manipülatif"</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Pasif-Agresif Karar Felci:</b> Baskı altında karar vermekten kaçan inisiyatif eksikliği.
+                                        <span class="formula-tag">Zaman Aşımı / Boş Seçim</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 12 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 12: Partnerin Hatası (Partner's Mistake)</div>
+                        <div class="chapter-id">ID: CH12_ACCOUNTABILITY_COACHING</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Partnerin yaptığı kritik bir hata sonrası yanan bakım odası ve kriz anı.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Hata yapan ekip üyesine karşı sergilenen tutum (Yapıcı, Prosedürel, Cezalandırıcı).</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Hata Toleransı ve Gelişim Odaklılık</li>
+                                    <li>Sosyal Arzu Edilebilirlik Yanılgısı (Bias)</li>
+                                    <li>Adalet Duygusu ve Koçluk Potansiyeli</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Gelişimsel Liderlik (Coaching):</b> Hatayı öğrenme süreci olarak gören en yapıcı profil.
+                                        <span class="formula-tag">Üslup = "Yapıcı / Koçluk"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Kuralcı / Soğuk Adalet:</b> Adaleti sadece prosedür üzerinden yürüten disiplinli yapı.
+                                        <span class="formula-tag">Üslup = "Prosedürel / Raporlama"</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Cezalandırıcı / Sert Yaklaşım:</b> Hataları yaptırım ve ceza ile karşılayan otoriter tarz.
+                                        <span class="formula-tag">Üslup = "Cezalandırıcı / Otoriter"</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bölüm 13 -->
+                <div class="chapter-card">
+                    <div class="chapter-header">
+                        <div class="chapter-title">Bölüm 13: Güven Testi (Trust Test)</div>
+                        <div class="chapter-id">ID: CH13_DELEGATION_AND_TRUST</div>
+                    </div>
+                    <div class="chapter-body">
+                        <div class="atmosphere-box">
+                            Atmosfer: Havalandırma tüneli. Son kapı. Partnerin hayatını teslim ettiği an.
+                        </div>
+                        <div class="metrics-section">
+                            <div>
+                                <h3>Oyun (Test)</h3>
+                                <p>Partneri tehlikeli tünele göndermek (Delegasyon) veya kendi gitmek (Mikro-yönetim).</p>
+                            </div>
+                            <div>
+                                <h3>Ölçülen Boyutlar</h3>
+                                <ul>
+                                    <li>Yetki Devri (Delegation)</li>
+                                    <li>Güven İnşası</li>
+                                    <li>Kontrol Odaklılık</li>
+                                </ul>
+                            </div>
+                            <div class="full-width">
+                                <h3>Davranışsal Bulgular (Eksiksiz)</h3>
+                                <ul class="findings-list">
+                                    <li class="severity-green">
+                                        <b>Güven Odaklı Delegasyon:</b> Kritik anlarda ekibine yetki devretme cesareti ve güveni.
+                                        <span class="formula-tag">Seçim = "Yetki Devri (Güven)"</span>
+                                    </li>
+                                    <li class="severity-orange">
+                                        <b>Koruyucu Mikro-Yönetim:</b> "En iyi ben yaparım" diyerek her şeye el atma.
+                                        <span class="formula-tag">Seçim = "Mikro-Yönetim (Kontrol)"</span>
+                                    </li>
+                                    <li class="severity-red">
+                                        <b>Suçlayıcı Güvensizlik:</b> Geçmiş hataları silah olarak kullanıp güven bağını kırma.
+                                        <span class="formula-tag">Tepki = "Red / Suçlama"</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>HORIZON PROTOCOL // PROPRIETARY HR TECHNOLOGY // CLINICAL UNIT 2142</p>
+        <p>Bütün hakları saklıdır. Horizon İstasyonu Personel Seçim Dairesi.</p>
+    </footer>
+
+    <a href="#introduction" class="scroll-top">UP</a>
+</body>
+</html>
