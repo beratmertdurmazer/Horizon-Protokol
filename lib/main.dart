@@ -22,7 +22,7 @@ class HorizonProtocolApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Horizon Protocol',
+      title: 'Horizon Protokolü',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const SplashScreen(),

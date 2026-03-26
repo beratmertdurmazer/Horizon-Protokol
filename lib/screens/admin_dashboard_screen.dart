@@ -83,7 +83,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ) : null,
         title: Text(
-          "HORIZON ADMIN PANEL // ANALİZ_MERKEZİ",
+          "HORIZON PROTOKOLÜ // ANALİZ_MERKEZİ",
           style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontWeight: FontWeight.bold, letterSpacing: 2),
         ),
         actions: [
