@@ -595,4 +595,347 @@ class AssessmentEngine {
 
     return summary;
   }
+
+  // ═══════════════════════════════════════════════════════════
+  //  BÜTÜNLEŞİK PROFİL MOTORU (Composite Profile Engine)
+  // ═══════════════════════════════════════════════════════════
+
+  /// Her flag'in renk/şiddet seviyesi: +2 yeşil, +1 sarı, -1 turuncu, -2 kırmızı, 0 mavi
+  static const Map<String, int> _flagSeverity = {
+    // B1
+    'Analitik Çeviklik': 2,
+    'Sistematik Çözümleme': 2,
+    'Adaptif Öğrenme': 2,
+    'Rastgele Başarı': -1,
+    'Örüntü Tanıma': 1,
+    'Dürtüsel Aksiyon': -2,
+    'Bilişsel Blokaj': -2,
+    // B2
+    'Stratejik Orkestrasyon': 2,
+    'Operasyonel Sürdürülebilirlik': 2,
+    'İnsan Sermayesi ve Esenlik': 2,
+    'Paydaş Yönetimi ve İletişim': 2,
+    'Reaktif Kriz Tepkisi': -2,
+    'Tünel Vizyonu': -2,
+    'Karar Paralizi': -2,
+    // B3
+    'Hiper-Odak': 2,
+    'Dengeli Analizci': 1,
+    'Bilişsel Efor': -1,
+    'İşlem Ataleti': -2,
+    'Metodik Haritalama': 2,
+    'Bilişsel Filtreleme': 2,
+    'Bilişsel Toparlanma Hızı': 2,
+    'Dürtüsel Refleks': -1,
+    'Odak Erozyonu': -2,
+    'Hafıza Hassasiyeti': 2,
+    'Multitasking Kaygısı': -2,
+    // B4
+    'Ar-Ge Koruyucusu': 2,
+    'Çalışan Hakları Savunucusu': 2,
+    'ESG / Vizyon Bilinci': 2,
+    'Özgüvenli Karar': 2,
+    'Bilişsel Çalkantı': -1,
+    'Yüzeysel Bakış': -2,
+    // B5
+    'Kognitif Dayanıklılık ve Süreç Sadakati': 2,
+    'Stres Bağımlı Kural Esnetme': -1,
+    'Kognitif Kaçınma / Protokol İhlali': -2,
+    'Metodik Veri Süzme': 2,
+    'Dürtüsel Yanılgı': -2,
+    'Hevristik Deneme Döngüsü': -2,
+    'Akut Karar Paralizisi': -2,
+    // B6
+    'Dengeli / Hesaplanmış Reaksiyon': 2,
+    'Erken Karar / Alarm Yorgunluğu Zafiyeti': -2,
+    'Soğukkanlı Kriz Gözlemcisi': 2,
+    'Akut Motor Panik': -2,
+    'Gerçeklik Metaneti / Şeffaflık': 2,
+    'Bilgi Algısı İptali / Körlük Kararı': -2,
+    // B7
+    'Derin Analitik Odak': 2,
+    'Şanslı Dürtüsellik': 1,
+    'Kör Aksiyon / Dürtüsel Panik': -2,
+    'Bilişsel Kilitlenme (Bölüm 7)': -2,
+    // B8
+    'Hesaplanmış Akut Müdahale': 2,
+    'Gecikmeli Güvenlik': 1,
+    'Dürtüsel Kahramanlık / Şehitlik Eğilimi': -2,
+    'Akut Şok Kilitlenmesi': -2,
+    // B9
+    'Sistemik Öz-Eleştiri': 2,
+    'Adaptif Öğrenme Odağı': 2,
+    'Aşırı Öz-Yıkım / Suçluluk Melankolisi': 1,
+    'Yüzeysel & Taktiksel Pişmanlık': 1,
+    'Mazeretçi Rasyonalizasyon': -1,
+    'Kaderci Öğrenilmiş Çaresizlik': -1,
+    'Açık Kurban Psikolojisi': -2,
+    'Sorumluluk Reddi (Narsistik Savunma)': -2,
+    // B10 - MAVİ (stil, puan=0)
+    'Teknik Yetkinlik Temelli Liderlik': 0,
+    'Sosyal Uyum Temelli Liderlik': 0,
+    'Metodik Veri İnceleme': 0,
+    'Sezgisel Seçim Refleksi': 0,
+    // B11
+    'Psikolojik Güvenlik Mimarı': 2,
+    'Duygusuz Rasyonalizasyon': 1,
+    'Hiyerarşik Komuta ve Karar Keskinliği': -1,
+    'Duygusal Manipülasyon ve Toksik Etki': -2,
+    'Pasif-Agresif Karar Felci': -2,
+    // B12
+    'Gelişimsel Liderlik (Hata Toleransı)': 2,
+    'Kuralcı ve Soğuk Adalet': -1,
+    'Cezalandırıcı Otoriter Yaklaşım': -2,
+    // B13
+    'Güven Odaklı Delegasyon': 2,
+    'Koruyucu Mikro-Yönetim': -1,
+    'Suçlayıcı ve Toksik Güvensizlik': -2,
+  };
+
+  /// 6 yetkinlik ekseninin flag → eksen eşlemesi
+  static const Map<String, List<String>> _axisFlags = {
+    'cognitive_agility': [
+      'Analitik Çeviklik', 'Sistematik Çözümleme', 'Adaptif Öğrenme',
+      'Rastgele Başarı', 'Dürtüsel Aksiyon', 'Bilişsel Blokaj',
+      'Hiper-Odak', 'Dengeli Analizci', 'Bilişsel Efor', 'İşlem Ataleti',
+      'Metodik Veri Süzme', 'Dürtüsel Yanılgı', 'Hevristik Deneme Döngüsü',
+      'Derin Analitik Odak', 'Şanslı Dürtüsellik',
+      'Kör Aksiyon / Dürtüsel Panik', 'Bilişsel Kilitlenme (Bölüm 7)',
+    ],
+    'stress_resilience': [
+      'Hiper-Odak', 'Bilişsel Filtreleme', 'Bilişsel Toparlanma Hızı',
+      'Odak Erozyonu', 'Multitasking Kaygısı',
+      'Kognitif Dayanıklılık ve Süreç Sadakati',
+      'Kognitif Kaçınma / Protokol İhlali', 'Stres Bağımlı Kural Esnetme',
+      'Dengeli / Hesaplanmış Reaksiyon',
+      'Erken Karar / Alarm Yorgunluğu Zafiyeti',
+      'Soğukkanlı Kriz Gözlemcisi', 'Akut Motor Panik',
+      'Hesaplanmış Akut Müdahale', 'Gecikmeli Güvenlik',
+      'Dürtüsel Kahramanlık / Şehitlik Eğilimi', 'Akut Şok Kilitlenmesi',
+    ],
+    'ethical_integrity': [
+      'Stratejik Orkestrasyon', 'Tünel Vizyonu', 'Karar Paralizi',
+      'Ar-Ge Koruyucusu', 'Çalışan Hakları Savunucusu',
+      'ESG / Vizyon Bilinci', 'Özgüvenli Karar',
+      'Bilişsel Çalkantı', 'Yüzeysel Bakış',
+      'Sistemik Öz-Eleştiri', 'Adaptif Öğrenme Odağı',
+      'Mazeretçi Rasyonalizasyon', 'Açık Kurban Psikolojisi',
+      'Sorumluluk Reddi (Narsistik Savunma)',
+      'Gerçeklik Metaneti / Şeffaflık',
+      'Bilgi Algısı İptali / Körlük Kararı',
+    ],
+    'leadership': [
+      'Psikolojik Güvenlik Mimarı', 'Duygusuz Rasyonalizasyon',
+      'Hiyerarşik Komuta ve Karar Keskinliği',
+      'Duygusal Manipülasyon ve Toksik Etki',
+      'Pasif-Agresif Karar Felci',
+      'Gelişimsel Liderlik (Hata Toleransı)',
+      'Kuralcı ve Soğuk Adalet', 'Cezalandırıcı Otoriter Yaklaşım',
+      'Güven Odaklı Delegasyon', 'Koruyucu Mikro-Yönetim',
+      'Suçlayıcı ve Toksik Güvensizlik',
+    ],
+    'decision_quality': [
+      'Stratejik Orkestrasyon', 'Operasyonel Sürdürülebilirlik',
+      'İnsan Sermayesi ve Esenlik', 'Paydaş Yönetimi ve İletişim',
+      'Reaktif Kriz Tepkisi', 'Karar Paralizi',
+      'Özgüvenli Karar', 'Bilişsel Çalkantı', 'Yüzeysel Bakış',
+      'Akut Karar Paralizisi',
+      'Hesaplanmış Akut Müdahale', 'Akut Şok Kilitlenmesi',
+    ],
+    'adaptability': [
+      'Adaptif Öğrenme', 'Örüntü Tanıma', 'Bilişsel Blokaj',
+      'Derin Analitik Odak', 'Bilişsel Kilitlenme (Bölüm 7)',
+      'Adaptif Öğrenme Odağı',
+      'Aşırı Öz-Yıkım / Suçluluk Melankolisi',
+      'Yüzeysel & Taktiksel Pişmanlık',
+      'Kaderci Öğrenilmiş Çaresizlik',
+      'Hafıza Hassasiyeti', 'Metodik Haritalama',
+    ],
+  };
+
+  /// Bileşik skorları hesapla (0-100 normalize)
+  Map<String, double> calculateCompositeScores(List<String> flags) {
+    final Map<String, double> result = {};
+    for (final axis in _axisFlags.entries) {
+      final relevant = axis.value.where((f) => flags.contains(f)).toList();
+      if (relevant.isEmpty) {
+        result[axis.key] = -1; // Veri yok
+        continue;
+      }
+      double sum = 0;
+      for (final f in relevant) {
+        sum += (_flagSeverity[f] ?? 0);
+      }
+      // Normalize: max possible = relevant.length * 2, min = relevant.length * -2
+      final maxPossible = axis.value.length * 2.0;
+      final minPossible = axis.value.length * -2.0;
+      final normalized = ((sum - minPossible) / (maxPossible - minPossible)) * 100;
+      result[axis.key] = normalized.clamp(0, 100);
+    }
+    return result;
+  }
+
+  /// Stil profili (Mavi flag'ler)
+  Map<String, String> getStyleProfile(List<String> flags) {
+    final Map<String, String> style = {};
+    // Ekip Stili
+    if (flags.contains('Sosyal Uyum Temelli Liderlik')) {
+      style['team_style'] = 'Sosyal Uyum Odaklı';
+    } else if (flags.contains('Teknik Yetkinlik Temelli Liderlik')) {
+      style['team_style'] = 'Teknik Yetkinlik Odaklı';
+    } else {
+      style['team_style'] = 'Veri Yok';
+    }
+    // Karar Metodu
+    if (flags.contains('Metodik Veri İnceleme')) {
+      style['decision_method'] = 'Metodik / Analitik';
+    } else if (flags.contains('Sezgisel Seçim Refleksi')) {
+      style['decision_method'] = 'Sezgisel / Hızlı';
+    } else {
+      style['decision_method'] = 'Veri Yok';
+    }
+    // Stil skor (0-100 arası, 0=sol uç, 100=sağ uç)
+    style['team_style_score'] = flags.contains('Sosyal Uyum Temelli Liderlik') ? '80'
+        : flags.contains('Teknik Yetkinlik Temelli Liderlik') ? '20' : '50';
+    style['decision_method_score'] = flags.contains('Metodik Veri İnceleme') ? '80'
+        : flags.contains('Sezgisel Seçim Refleksi') ? '20' : '50';
+    return style;
+  }
+
+  /// Çapraz korelasyon flag'leri
+  List<Map<String, String>> generateCrossChapterFlags(
+      List<String> flags, List<ChapterMetric> metrics) {
+    final List<Map<String, String>> correlations = [];
+
+    // --- Korelasyon 1: Söylem-Eylem Tutarlılığı (B2 ↔ B4) ---
+    try {
+      final b2 = metrics.firstWhere((m) => m.chapterId.contains('Bölüm 2'));
+      final b4 = metrics.firstWhere((m) => m.chapterId.contains('Bölüm 4'));
+      final b2Levels = b2.additionalData?['final_levels'] as Map<String, dynamic>? ?? {};
+      final b2Oxygen = b2Levels['oxygen'] ?? 0;
+      final b2Reactor = b2Levels['reactor'] ?? 0;
+      final b4Selected = b4.additionalData?['selectedArea']?.toString().toLowerCase() ?? '';
+
+      if (b2Oxygen > b2Reactor && b4Selected == 'quarters') {
+        correlations.add({
+          'type': 'warning',
+          'title': 'Değer-Eylem Çelişkisi',
+          'detail': 'B2\'de insanı (Oksijen) önceledi, B4\'te çalışan alanını (Yatakhane) feda etti.',
+          'source': 'B2 ↔ B4',
+        });
+      } else if (b2Oxygen > b2Reactor && b4Selected != 'quarters') {
+        correlations.add({
+          'type': 'success',
+          'title': 'Tutarlı İnsancıl Değer Profili',
+          'detail': 'Hem kaynak dağılımında hem feda kararında insan odağı tutarlı.',
+          'source': 'B2 ↔ B4',
+        });
+      }
+    } catch (_) {}
+
+    // --- Korelasyon 2: Liderlik Tutarlılığı (B11 ↔ B12 ↔ B13) ---
+    try {
+      final b11 = metrics.firstWhere((m) => m.chapterId.contains('Bölüm 11'));
+      final b12 = metrics.firstWhere((m) => m.chapterId.contains('Bölüm 12'));
+      final b13 = metrics.firstWhere((m) => m.chapterId.contains('Bölüm 13'));
+      final c11 = b11.additionalData?['choiceId'] ?? '';
+      final c12 = b12.additionalData?['choiceId'] ?? '';
+      final c13 = b13.additionalData?['choiceId'] ?? '';
+
+      if (c11 == 'COLLABORATIVE' && c12 == 'CONSTRUCTIVE' && c13 == 'DELEGATE') {
+        correlations.add({
+          'type': 'success',
+          'title': 'Tam Demokratik Lider Profili',
+          'detail': 'Çatışmada uzlaşmacı, hatada yapıcı, finalde güven veriyor.',
+          'source': 'B11 ↔ B12 ↔ B13',
+        });
+      } else if (c11 == 'COLLABORATIVE' && c12 == 'PUNITIVE') {
+        correlations.add({
+          'type': 'warning',
+          'title': 'Yüzeysel Empati Maskesi',
+          'detail': 'Rahat ortamda uzlaşmacı, kriz anında cezalandırıcı.',
+          'source': 'B11 ↔ B12',
+        });
+      }
+      if (c12 == 'PUNITIVE' && c13 == 'DISTRUST') {
+        correlations.add({
+          'type': 'danger',
+          'title': 'Toksik Otorite Zinciri',
+          'detail': 'Cezalandırıcı tutum + güvensizlik → ekip yıkıcı.',
+          'source': 'B12 ↔ B13',
+        });
+      }
+    } catch (_) {}
+
+    // --- Korelasyon 3: Stres Kırılma Noktası (B1→B3→B5→B6→B8) ---
+    final stressChapters = ['Bölüm 1', 'Bölüm 3', 'Bölüm 5', 'Bölüm 6', 'Bölüm 8'];
+    int breakIndex = -1;
+    for (int i = 0; i < stressChapters.length; i++) {
+      final chFlags = _getChapterFlags(stressChapters[i], flags, metrics);
+      final hasNegative = chFlags.any((f) => (_flagSeverity[f] ?? 0) < 0);
+      if (hasNegative && breakIndex == -1) breakIndex = i;
+    }
+    if (breakIndex >= 0) {
+      correlations.add({
+        'type': 'info',
+        'title': 'Stres Kırılma Noktası: ${stressChapters[breakIndex]}',
+        'detail': 'Artan baskı altında ilk negatif davranış bu noktada ortaya çıktı.',
+        'source': 'B1→B3→B5→B6→B8',
+      });
+    }
+
+    // --- Korelasyon 4: Sorumluluk Zinciri (B8 ↔ B9) ---
+    if (flags.contains('Dürtüsel Kahramanlık / Şehitlik Eğilimi') &&
+        (flags.contains('Sorumluluk Reddi (Narsistik Savunma)') ||
+         flags.contains('Açık Kurban Psikolojisi'))) {
+      correlations.add({
+        'type': 'danger',
+        'title': 'Kör Nokta: Hatasını Görmeyip Tekrarlama Riski',
+        'detail': 'Dürtüsel aksiyon + sorumluluk reddi → aynı hatayı tekrarlama.',
+        'source': 'B8 ↔ B9',
+      });
+    }
+
+    // --- Korelasyon 5: Delegasyon Paradoksu (B10 ↔ B13) ---
+    if (flags.contains('Sosyal Uyum Temelli Liderlik') &&
+        flags.contains('Koruyucu Mikro-Yönetim')) {
+      correlations.add({
+        'type': 'warning',
+        'title': 'Söylemde Ekipçi, Eylemde Bireyci',
+        'detail': 'Ekip odaklı partner seçimi ama kritik anda yetki devretmeme.',
+        'source': 'B10 ↔ B13',
+      });
+    }
+
+    return correlations;
+  }
+
+  /// Hangi bölümden hangi flag'ler geldi
+  List<String> _getChapterFlags(String chapterId, List<String> allFlags, List<ChapterMetric> metrics) {
+    try {
+      final m = metrics.firstWhere((m) => m.chapterId.contains(chapterId));
+      if (chapterId.contains('1')) return _analyzeChapter1(m);
+      if (chapterId.contains('3')) return _analyzeChapter3(m);
+      if (chapterId.contains('5')) return _analyzeChapter5(m);
+      if (chapterId.contains('6')) return _analyzeChapter6(m);
+      if (chapterId.contains('8')) return _analyzeChapter8(m);
+    } catch (_) {}
+    return [];
+  }
+
+  /// Eksen etiketleri (Türkçe)
+  static String getAxisLabel(String key) {
+    switch (key) {
+      case 'cognitive_agility': return 'Bilişsel Çeviklik';
+      case 'stress_resilience': return 'Stres Dayanıklılığı';
+      case 'ethical_integrity': return 'Etik Tutarlılık';
+      case 'leadership': return 'Liderlik & İletişim';
+      case 'decision_quality': return 'Karar Kalitesi';
+      case 'adaptability': return 'Adaptasyon & Öğrenme';
+      default: return key;
+    }
+  }
+
+  /// Flag'in şiddet seviyesini döndürür
+  static int getFlagSeverity(String flag) => _flagSeverity[flag] ?? 0;
 }

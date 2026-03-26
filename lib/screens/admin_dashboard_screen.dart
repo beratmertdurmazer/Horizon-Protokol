@@ -263,6 +263,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final flags = _engine.generateFlags(_selectedDecisions, _selectedMetrics);
     final archetype = _engine.getLeadershipArchetype(scores['leadership_impact'] ?? 0, scores['strategic_prioritization'] ?? 0);
 
+    // BÜTÜNLEŞİK PROFİL verileri
+    final compositeScores = _engine.calculateCompositeScores(flags);
+    final styleProfile = _engine.getStyleProfile(flags);
+    final crossFlags = _engine.generateCrossChapterFlags(flags, _selectedMetrics);
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(isMobile ? 15 : 30),
       child: Column(
@@ -272,6 +277,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           const SizedBox(height: 25),
           
           _buildExecutiveSummary(scores, flags),
+          const SizedBox(height: 25),
+
+          // ═══ YENİ: BÜTÜNLEŞİK PROFİL ═══
+          _buildCompositeProfileSection(compositeScores, styleProfile, crossFlags, isMobile),
           const SizedBox(height: 25),
           
           _buildFlagsSection(flags),
@@ -588,6 +597,371 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  BÜTÜNLEŞİK PROFİL BÖLÜMÜ (Composite Profile Section)
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildCompositeProfileSection(
+    Map<String, double> compositeScores,
+    Map<String, String> styleProfile,
+    List<Map<String, String>> crossFlags,
+    bool isMobile,
+  ) {
+    // Radar verisi hazırlama
+    final axisOrder = ['cognitive_agility', 'stress_resilience', 'ethical_integrity',
+                       'leadership', 'decision_quality', 'adaptability'];
+    final validScores = axisOrder
+        .where((k) => compositeScores[k] != null && compositeScores[k]! >= 0)
+        .toList();
+
+    if (validScores.isEmpty && crossFlags.isEmpty) {
+      return const SizedBox(); // Veri yoksa gösterme
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.cyanAccent.withOpacity(0.15)),
+        gradient: LinearGradient(
+          colors: [Colors.cyanAccent.withOpacity(0.03), Colors.transparent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.radar, color: AppTheme.neonCyan, size: 18),
+              const SizedBox(width: 10),
+              Text("BÜTÜNLEŞİK PROFİL ANALİZİ",
+                style: GoogleFonts.rajdhani(
+                  color: AppTheme.neonCyan,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  letterSpacing: 2,
+                )),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text("13 bölümün çapraz korelasyonu ile üretilmiş bileşik yetkinlik haritası",
+            style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 9)),
+          const SizedBox(height: 25),
+
+          // ─── RADAR CHART + SKOR TABLOSU ───
+          if (validScores.isNotEmpty) ...[
+            isMobile
+              ? Column(children: [
+                  _buildRadarChart(compositeScores, styleProfile, axisOrder),
+                  const SizedBox(height: 20),
+                  _buildScoreTable(compositeScores, axisOrder),
+                ])
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: _buildRadarChart(compositeScores, styleProfile, axisOrder),
+                    ),
+                    const SizedBox(width: 30),
+                    Expanded(
+                      flex: 2,
+                      child: _buildScoreTable(compositeScores, axisOrder),
+                    ),
+                  ],
+                ),
+            const SizedBox(height: 25),
+          ],
+
+          // ─── STİL PROFİLİ ───
+          _buildStyleProfileBar(styleProfile),
+          const SizedBox(height: 25),
+
+          // ─── ÇAPRAZ KORELASYON ALARMLARI ───
+          if (crossFlags.isNotEmpty) ...[
+            Text("ÇAPRAZ KORELASYON TESPİTLERİ",
+              style: GoogleFonts.rajdhani(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1)),
+            const SizedBox(height: 12),
+            ...crossFlags.map((c) => _buildCorrelationCard(c)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRadarChart(Map<String, double> scores, Map<String, String> style, List<String> axisOrder) {
+    // 8 eksen: 6 yetkinlik + 2 stil
+    final List<String> allAxes = [...axisOrder, 'team_style', 'decision_method'];
+    final List<String> labels = [
+      ...axisOrder.map((k) => AssessmentEngine.getAxisLabel(k)),
+      'Ekip Stili',
+      'Karar Metodu',
+    ];
+
+    final List<double> values = [
+      ...axisOrder.map((k) => (scores[k] ?? 50).clamp(0, 100).toDouble()),
+      double.tryParse(style['team_style_score'] ?? '50') ?? 50,
+      double.tryParse(style['decision_method_score'] ?? '50') ?? 50,
+    ];
+
+    return SizedBox(
+      height: 300,
+      child: RadarChart(
+        RadarChartData(
+          radarShape: RadarShape.polygon,
+          radarBackgroundColor: Colors.transparent,
+          borderData: FlBorderData(show: false),
+          radarBorderData: const BorderSide(color: Colors.white10, width: 0.5),
+          gridBorderData: const BorderSide(color: Colors.white10, width: 0.3),
+          tickBorderData: const BorderSide(color: Colors.transparent),
+          tickCount: 4,
+          ticksTextStyle: const TextStyle(fontSize: 0, color: Colors.transparent),
+          titlePositionPercentageOffset: 0.2,
+          titleTextStyle: GoogleFonts.sourceCodePro(color: Colors.white38, fontSize: 8),
+          getTitle: (index, angle) {
+            return RadarChartTitle(
+              text: labels[index],
+              angle: 0,
+            );
+          },
+          dataSets: [
+            // Yetkinlik skorları (ilk 6) - Cyan
+            RadarDataSet(
+              dataEntries: values.map((v) => RadarEntry(value: v)).toList(),
+              borderColor: AppTheme.neonCyan,
+              fillColor: AppTheme.neonCyan.withOpacity(0.15),
+              borderWidth: 2,
+              entryRadius: 3,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoreTable(Map<String, double> scores, List<String> axisOrder) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("YETKİNLİK SKORLARI",
+          style: GoogleFonts.rajdhani(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1)),
+        const SizedBox(height: 12),
+        ...axisOrder.map((key) {
+          final score = scores[key] ?? -1;
+          final label = AssessmentEngine.getAxisLabel(key);
+          final isNoData = score < 0;
+          final color = isNoData ? Colors.white24
+              : score >= 70 ? Colors.greenAccent
+              : score >= 40 ? Colors.orangeAccent
+              : Colors.redAccent;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(label,
+                      style: GoogleFonts.sourceCodePro(color: Colors.white70, fontSize: 10)),
+                    Text(isNoData ? "VERİ YOK" : "${score.toInt()}/100",
+                      style: GoogleFonts.sourceCodePro(
+                        color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: isNoData ? 0 : (score / 100).clamp(0, 1),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildStyleProfileBar(Map<String, String> style) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+        color: Colors.blueAccent.withOpacity(0.03),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.fingerprint, color: Colors.blueAccent, size: 14),
+              const SizedBox(width: 8),
+              Text("LİDERLİK DNA'SI (STİL PROFİLİ)",
+                style: GoogleFonts.rajdhani(
+                  color: Colors.blueAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 1,
+                )),
+            ],
+          ),
+          const SizedBox(height: 15),
+          _buildStyleAxis(
+            "EKİP KURMA",
+            "Teknik Odaklı",
+            "Sosyal Uyum Odaklı",
+            double.tryParse(style['team_style_score'] ?? '50') ?? 50,
+            style['team_style'] ?? 'Veri Yok',
+          ),
+          const SizedBox(height: 15),
+          _buildStyleAxis(
+            "KARAR METODU",
+            "Sezgisel / Hızlı",
+            "Metodik / Analitik",
+            double.tryParse(style['decision_method_score'] ?? '50') ?? 50,
+            style['decision_method'] ?? 'Veri Yok',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStyleAxis(String title, String leftLabel, String rightLabel, double score, String currentLabel) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title, style: GoogleFonts.sourceCodePro(color: Colors.white38, fontSize: 9)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.1),
+                border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child: Text(currentLabel,
+                style: GoogleFonts.sourceCodePro(color: Colors.blueAccent, fontSize: 9, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Stack(
+          children: [
+            Container(
+              height: 6,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  Colors.amber.withOpacity(0.3),
+                  Colors.blueAccent.withOpacity(0.3),
+                ]),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            Positioned(
+              left: (score / 100).clamp(0.02, 0.98) * (MediaQuery.of(context).size.width * 0.3),
+              child: Container(
+                width: 12,
+                height: 12,
+                transform: Matrix4.translationValues(-6, -3, 0),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                  boxShadow: [BoxShadow(color: Colors.blueAccent.withOpacity(0.5), blurRadius: 6)],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(leftLabel, style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 8)),
+            Text(rightLabel, style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 8)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCorrelationCard(Map<String, String> c) {
+    final type = c['type'] ?? 'info';
+    Color color;
+    IconData icon;
+    switch (type) {
+      case 'success':
+        color = Colors.greenAccent;
+        icon = Icons.check_circle_outline;
+        break;
+      case 'warning':
+        color = Colors.orangeAccent;
+        icon = Icons.warning_amber_rounded;
+        break;
+      case 'danger':
+        color = Colors.redAccent;
+        icon = Icons.error_outline;
+        break;
+      default:
+        color = Colors.blueAccent;
+        icon = Icons.info_outline;
+    }
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border(left: BorderSide(color: color, width: 3)),
+        color: color.withOpacity(0.03),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(c['title'] ?? '',
+                      style: GoogleFonts.rajdhani(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      color: color.withOpacity(0.1),
+                      child: Text(c['source'] ?? '',
+                        style: GoogleFonts.sourceCodePro(color: color, fontSize: 8, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(c['detail'] ?? '',
+                  style: GoogleFonts.inter(color: Colors.white60, fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
