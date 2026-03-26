@@ -5,6 +5,7 @@ import 'package:path/path.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:horizon_protocol/models/game_models.dart';
 import 'package:web/web.dart' as web;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -13,6 +14,7 @@ class DatabaseService {
   final _random = Random();
 
   Database? _db;
+  final supabase = Supabase.instance.client;
 
   // Web Fallback Storage
   static List<Candidate> _webCandidates = [];
@@ -153,6 +155,16 @@ class DatabaseService {
       _webCandidates.removeWhere((c) => c.id == candidate.id);
       _webCandidates.insert(0, candidate);
       _saveToWebStorage();
+      
+      // Supabase Sync
+      await supabase.from('candidates').upsert({
+        'id': candidate.id,
+        'name': candidate.name,
+        'position': candidate.position,
+        'scores': candidate.scores,
+        'behavioralFlags': candidate.behavioralFlags,
+        'createdAt': candidate.createdAt.toIso8601String(),
+      });
       return;
     }
     final db = await database;
@@ -182,6 +194,12 @@ class DatabaseService {
         );
       }
       _saveToWebStorage();
+
+      // Supabase Sync
+      await supabase.from('candidates').update({
+        'scores': scores,
+        'behavioralFlags': flags,
+      }).eq('id', id);
       return;
     }
     final db = await database;
@@ -202,6 +220,9 @@ class DatabaseService {
       _webDecisions.removeWhere((d) => d.candidateId == id);
       _webMetrics.removeWhere((m) => m.candidateId == id);
       _saveToWebStorage();
+
+      // Supabase Sync
+      await supabase.from('candidates').delete().eq('id', id);
       return;
     }
     final db = await database;
@@ -229,6 +250,18 @@ class DatabaseService {
     if (kIsWeb) {
       _webDecisions.add(decision);
       _saveToWebStorage();
+
+      // Supabase Sync
+      await supabase.from('decisions').upsert({
+        'id': decision.id,
+        'candidateId': decision.candidateId,
+        'moduleId': decision.moduleId,
+        'chapterId': decision.chapterId,
+        'choiceId': decision.choiceId,
+        'durationMs': decision.durationMs,
+        'triggers': decision.triggers,
+        'timestamp': decision.timestamp.toIso8601String(),
+      });
       return;
     }
     final db = await database;
@@ -247,6 +280,16 @@ class DatabaseService {
     if (kIsWeb) {
       _webMetrics.add(metric);
       _saveToWebStorage();
+
+      // Supabase Sync
+      await supabase.from('chapter_metrics').upsert({
+        'id': metric.id,
+        'candidateId': metric.candidateId,
+        'chapterId': metric.chapterId,
+        'totalTimeMs': metric.totalTimeMs,
+        'additionalData': metric.additionalData,
+        'timestamp': metric.timestamp.toIso8601String(),
+      });
       return;
     }
     final db = await database;
@@ -262,7 +305,26 @@ class DatabaseService {
 
   // Query Operations
   Future<List<Decision>> getDecisionsForCandidate(String candidateId) async {
-    if (kIsWeb) return _webDecisions.where((d) => d.candidateId == candidateId).toList();
+    if (kIsWeb) {
+      try {
+        final response = await supabase.from('decisions').select().eq('candidateId', candidateId);
+        final cloudDecisions = (response as List).map((m) => Decision(
+          id: m['id'],
+          candidateId: m['candidateId'],
+          moduleId: m['moduleId'],
+          chapterId: m['chapterId'],
+          choiceId: m['choiceId'],
+          durationMs: m['durationMs'],
+          triggers: List<String>.from(m['triggers']),
+          timestamp: DateTime.parse(m['timestamp']),
+        )).toList();
+        
+        if (cloudDecisions.isNotEmpty) return cloudDecisions;
+      } catch (e) {
+        debugPrint("Supabase Fetch Error (Decisions): $e");
+      }
+      return _webDecisions.where((d) => d.candidateId == candidateId).toList();
+    }
     final db = await database;
     final maps = await db!.query(
       'decisions',
@@ -284,7 +346,23 @@ class DatabaseService {
   }
 
   Future<List<ChapterMetric>> getMetricsForCandidate(String candidateId) async {
-    if (kIsWeb) return _webMetrics.where((m) => m.candidateId == candidateId).toList();
+    if (kIsWeb) {
+      try {
+        final response = await supabase.from('chapter_metrics').select().eq('candidateId', candidateId);
+        final cloudMetrics = (response as List).map((m) => ChapterMetric(
+          id: m['id'],
+          candidateId: m['candidateId'],
+          chapterId: m['chapterId'],
+          totalTimeMs: m['totalTimeMs'],
+          additionalData: m['additionalData'],
+          timestamp: DateTime.parse(m['timestamp']),
+        )).toList();
+        if (cloudMetrics.isNotEmpty) return cloudMetrics;
+      } catch (e) {
+        debugPrint("Supabase Fetch Error (Metrics): $e");
+      }
+      return _webMetrics.where((m) => m.candidateId == candidateId).toList();
+    }
     final db = await database;
     final maps = await db!.query(
       'chapter_metrics',
@@ -304,7 +382,24 @@ class DatabaseService {
   }
 
   Future<List<Candidate>> getAllCandidates() async {
-    if (kIsWeb) return _webCandidates;
+    if (kIsWeb) {
+      try {
+        final response = await supabase.from('candidates').select().order('createdAt', ascending: false);
+        final cloudCandidates = (response as List).map((m) => Candidate(
+          id: m['id'],
+          name: m['name'],
+          position: m['position'],
+          scores: Map<String, double>.from(m['scores']),
+          behavioralFlags: List<String>.from(m['behavioralFlags']),
+          createdAt: DateTime.parse(m['createdAt']),
+        )).toList();
+        
+        if (cloudCandidates.isNotEmpty) return cloudCandidates;
+      } catch (e) {
+        debugPrint("Supabase Fetch Error: $e");
+      }
+      return _webCandidates;
+    }
     final db = await database;
     final maps = await db!.query('candidates', orderBy: 'createdAt DESC');
     return List.generate(maps.length, (i) {
