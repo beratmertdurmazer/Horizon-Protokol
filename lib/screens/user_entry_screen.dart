@@ -171,6 +171,7 @@ class _UserEntryScreenState extends State<UserEntryScreen> with TickerProviderSt
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    const SizedBox(height: 80),
                     // LOGO / PROTOCOL HEADER
                     _buildHeader(),
                     const SizedBox(height: 60),

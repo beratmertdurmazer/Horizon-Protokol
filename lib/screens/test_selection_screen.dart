@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:horizon_protocol/core/app_theme.dart';
 import 'package:horizon_protocol/screens/intro_screen.dart';
 import 'package:horizon_protocol/services/audio_service.dart';
+import 'package:horizon_protocol/screens/user_entry_screen.dart';
 
 class TestSelectionScreen extends StatefulWidget {
   const TestSelectionScreen({super.key});
@@ -112,8 +113,12 @@ class _TestSelectionScreenState extends State<TestSelectionScreen> with SingleTi
         Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white, size: 20),
-              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+              onPressed: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const UserEntryScreen()),
+                );
+              },
             ),
             const SizedBox(width: 10),
             Column(
