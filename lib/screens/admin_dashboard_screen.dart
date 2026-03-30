@@ -81,20 +81,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             icon: const Icon(Icons.menu, color: AppTheme.neonCyan),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
-        ) : null,
+        ) : IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppTheme.neonCyan),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
           "HORIZON PROTOKOLÜ // ANALİZ_MERKEZİ",
-          style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontWeight: FontWeight.bold, letterSpacing: 2),
+          style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontWeight: FontWeight.bold, fontSize: isMobile ? 12 : 16, letterSpacing: 1),
         ),
         actions: [
-                    IconButton(
+          if (isMobile)
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white70, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+          IconButton(
             tooltip: "Tüm Verileri Temizle",
-            icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent),
+            icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 20),
             onPressed: () => _confirmClearAll(),
           ),
           IconButton(
             tooltip: "Yenile",
-            icon: const Icon(Icons.refresh, color: AppTheme.neonCyan),
+            icon: const Icon(Icons.refresh, color: AppTheme.neonCyan, size: 20),
             onPressed: _loadCandidates,
           ),
         ],
@@ -279,7 +287,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCandidateHero(isMobile, scores, archetype),
+          _buildHeader(isMobile, scores, archetype),
           const SizedBox(height: 25),
           
           _buildExecutiveSummary(scores, flags),
@@ -338,9 +346,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(metric.chapterId.toUpperCase(), style: GoogleFonts.rajdhani(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Expanded(child: Text(metric.chapterId.toUpperCase(), style: GoogleFonts.rajdhani(color: Colors.white, fontWeight: FontWeight.bold))),
                     Text("${(metric.totalTimeMs / 1000).toStringAsFixed(1)} Saniye", style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 10)),
                   ],
                 ),
@@ -489,7 +496,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  Widget _buildCandidateHero(bool isMobile, Map<String, double> scores, String archetype) {
+  Widget _buildHeader(bool isMobile, Map<String, double> scores, String archetype) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -499,19 +506,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("ADAY_KODU: ${_selectedCandidate!.id}", style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 10)),
-              Text(_selectedCandidate!.name.toUpperCase(), style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-              Row(
-                children: [
-                  Text("ARKETİP: $archetype", style: GoogleFonts.sourceCodePro(color: Colors.white30, fontSize: 10)),
-                  const SizedBox(width: 20),
-                  Text("ŞİRKET: ${_selectedCandidate!.company}", style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("ADAY_KODU: ${_selectedCandidate!.id}", style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 10)),
+                Text(_selectedCandidate!.name.toUpperCase(), 
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Text("ARKETİP: $archetype", style: GoogleFonts.sourceCodePro(color: Colors.white30, fontSize: 10)),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Text("ŞİRKET: ${_selectedCandidate!.company}", 
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           if (!isMobile) 
             Text("${(scores['section1_adaptability'] ?? 0).toInt()}%", 
@@ -582,27 +597,56 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           children: flags.map((f) {
             final color = _getFlagColor(f);
             
+            final label = f.replaceAll('_', ' ').toTurkishUpperCase();
+            final description = _getFlagDescription(f);
+
             return Tooltip(
-              message: _getFlagDescription(f),
+              message: description,
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(color: Colors.black, border: Border.all(color: color)),
               textStyle: GoogleFonts.inter(color: Colors.white, fontSize: 12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: color.withOpacity(0.5)),
-                  color: color.withOpacity(0.05),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(color == Colors.redAccent ? Icons.warning_amber_rounded : (color == Colors.orangeAccent ? Icons.info_outline : Icons.check_circle_outline), 
-                      color: color, size: 12),
-                    const SizedBox(width: 8),
-                    Text(f.replaceAll('_', ' ').toTurkishUpperCase(), 
-                      style: GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ],
+              child: InkWell(
+                onTap: () {
+                  if (MediaQuery.of(context).size.width < 600) {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.black,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        side: BorderSide(color: AppTheme.neonCyan, width: 0.5),
+                      ),
+                      builder: (context) => Container(
+                        padding: const EdgeInsets.all(25),
+                        height: 200,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(label, style: GoogleFonts.rajdhani(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 15),
+                            Text(description, style: GoogleFonts.inter(color: Colors.white70, fontSize: 14)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: color.withOpacity(0.5)),
+                    color: color.withOpacity(0.05),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(color == Colors.redAccent ? Icons.warning_amber_rounded : (color == Colors.orangeAccent ? Icons.info_outline : Icons.check_circle_outline), 
+                        color: color, size: 12),
+                      const SizedBox(width: 8),
+                      Text(label, 
+                        style: GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -1238,12 +1282,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               const Icon(Icons.analytics_outlined, color: AppTheme.neonCyan, size: 18),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(chapterTitle, style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                  Text(testType, style: GoogleFonts.sourceCodePro(color: Colors.purpleAccent.withOpacity(0.7), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(chapterTitle, 
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                    Text(testType, 
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.sourceCodePro(color: Colors.purpleAccent.withOpacity(0.7), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  ],
+                ),
               ),
               const Spacer(),
               Container(
@@ -1252,7 +1302,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   color: (isSuccess ? Colors.greenAccent : Colors.redAccent).withOpacity(0.1),
                   border: Border.all(color: (isSuccess ? Colors.greenAccent : Colors.redAccent).withOpacity(0.3))
                 ),
-                child: Text(status, style: GoogleFonts.sourceCodePro(color: isSuccess ? Colors.greenAccent : Colors.redAccent, fontSize: 9, fontWeight: FontWeight.bold)),
+                child: Text(isMobile ? (isSuccess ? "BAŞARI" : "HATA") : status, 
+                  style: GoogleFonts.sourceCodePro(color: isSuccess ? Colors.greenAccent : Colors.redAccent, fontSize: 9, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

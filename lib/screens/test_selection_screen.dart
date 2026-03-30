@@ -109,26 +109,35 @@ class _TestSelectionScreenState extends State<TestSelectionScreen> with SingleTi
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
           children: [
-            Text(
-              "PROTOKOL SEÇİMİ",
-              style: GoogleFonts.rajdhani(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
             ),
-            const SizedBox(height: 8),
-            Text(
-              "SİSTEM ÇEVRİMİÇİ // ERİŞİM YETKİSİ ONAYLANDI",
-              style: GoogleFonts.sourceCodePro(
-                color: AppTheme.neonCyan.withOpacity(0.5),
-                fontSize: 10,
-                letterSpacing: 1,
-              ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "PROTOKOL SEÇİMİ",
+                  style: GoogleFonts.rajdhani(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "SİSTEM ÇEVRİMİÇİ // ERİŞİM YETKİSİ ONAYLANDI",
+                  style: GoogleFonts.sourceCodePro(
+                    color: AppTheme.neonCyan.withOpacity(0.5),
+                    fontSize: 10,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
