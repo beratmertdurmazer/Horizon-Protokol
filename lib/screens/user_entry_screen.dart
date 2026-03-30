@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:horizon_protocol/core/app_theme.dart';
 import 'package:horizon_protocol/services/audio_service.dart';
 import 'package:horizon_protocol/services/persona_mr.dart';
-import 'package:horizon_protocol/screens/intro_screen.dart';
+import 'package:horizon_protocol/screens/test_selection_screen.dart';
 import 'package:horizon_protocol/screens/admin_dashboard_screen.dart';
 import 'package:horizon_protocol/utils/string_extensions.dart';
 
@@ -19,6 +19,10 @@ class UserEntryScreen extends StatefulWidget {
 class _UserEntryScreenState extends State<UserEntryScreen> with TickerProviderStateMixin {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _positionController = TextEditingController();
+  final TextEditingController _otherCompanyController = TextEditingController();
+  
+  String? _selectedCompany;
+  final List<String> _companies = ["DelphiSonic", "Ensight", "Diğer"];
   
   late AnimationController _glitchController;
   late AnimationController _fadeController;
@@ -51,18 +55,23 @@ class _UserEntryScreenState extends State<UserEntryScreen> with TickerProviderSt
   void dispose() {
     _nameController.dispose();
     _positionController.dispose();
+    _otherCompanyController.dispose();
     _glitchController.dispose();
     _fadeController.dispose();
     super.dispose();
   }
 
   void _startSession() {
-    if (_nameController.text.trim().isEmpty || _positionController.text.trim().isEmpty) {
+    final company = _selectedCompany == "Diğer" ? _otherCompanyController.text.trim() : _selectedCompany;
+
+    if (_nameController.text.trim().isEmpty || 
+        _positionController.text.trim().isEmpty || 
+        company == null || company.isEmpty) {
       AudioService().playStaticBurst();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.red.withOpacity(0.8),
-          content: Text("BİLGİ EKSİK: KİMLİK TANIMLANAMADI", style: GoogleFonts.sourceCodePro(color: Colors.white)),
+          content: Text("BİLGİ EKSİK: KİMLİK VEYA ŞİRKET TANIMLANAMADI", style: GoogleFonts.sourceCodePro(color: Colors.white)),
         ),
       );
       return;
@@ -72,13 +81,17 @@ class _UserEntryScreenState extends State<UserEntryScreen> with TickerProviderSt
     AudioService().playTypingBeep();
 
     // Initialize session with PersonaMR
-    PersonaMR().initSession(_nameController.text.trim(), _positionController.text.trim());
+    PersonaMR().initSession(
+      _nameController.text.trim(), 
+      _positionController.text.trim(),
+      company,
+    );
 
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const IntroScreen()),
+          MaterialPageRoute(builder: (context) => const TestSelectionScreen()),
         );
       }
     });
@@ -120,7 +133,7 @@ class _UserEntryScreenState extends State<UserEntryScreen> with TickerProviderSt
             onPressed: () {
               if (pinController.text == "1234") {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminDashboardScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AdminDashboardScreen()));
               } else {
                 AudioService().playStaticBurst();
                 Navigator.pop(context);
@@ -402,7 +415,65 @@ class _UserEntryScreenState extends State<UserEntryScreen> with TickerProviderSt
               hintStyle: GoogleFonts.sourceCodePro(color: Colors.white10, fontSize: 14),
             ),
           ),
+
+          const SizedBox(height: 40),
+
+          // Company Selection
+          _buildLabel("MENSUP OLUNAN ŞİRKET"),
+          _buildCompanyDropdown(),
+          
+          if (_selectedCompany == "Diğer") ...[
+            const SizedBox(height: 20),
+            _buildLabel("ŞİRKET İSMİ (DİĞER)"),
+            TextField(
+              controller: _otherCompanyController,
+              style: GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 16),
+              cursorColor: AppTheme.neonCyan,
+              decoration: InputDecoration(
+                isDense: true,
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white10)),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.neonCyan)),
+                hintText: "ŞİRKET ADINI GİRİNİZ",
+                hintStyle: GoogleFonts.sourceCodePro(color: Colors.white10, fontSize: 14),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildCompanyDropdown() {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        canvasColor: Colors.black,
+      ),
+      child: DropdownButton<String>(
+        value: _selectedCompany,
+        hint: Text(
+          "ŞİRKET SEÇİNİZ",
+          style: GoogleFonts.sourceCodePro(color: Colors.white10, fontSize: 14),
+        ),
+        isExpanded: true,
+        underline: Container(
+          height: 1,
+          color: _selectedCompany != null ? AppTheme.neonCyan : Colors.white10,
+        ),
+        icon: Icon(Icons.keyboard_arrow_down, color: _selectedCompany != null ? AppTheme.neonCyan : Colors.white10),
+        items: _companies.map((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(
+              value,
+              style: GoogleFonts.sourceCodePro(color: Colors.white, fontSize: 16),
+            ),
+          );
+        }).toList(),
+        onChanged: (newValue) {
+          setState(() {
+            _selectedCompany = newValue;
+          });
+        },
       ),
     );
   }

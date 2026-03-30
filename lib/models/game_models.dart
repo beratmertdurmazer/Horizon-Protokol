@@ -3,15 +3,17 @@ enum EnergyArea { labs, quarters, greenhouse }
 class Candidate {
   final String id;
   final String name;
-  final String position; // Email yerine Position eklendi
-  final Map<String, double> scores; // {"cognitive_focus": 85, "stress_resilience": 72, etc.}
-  final List<String> behavioralFlags; // ["analytical_problem_solver", etc.]
+  final String position;
+  final String company; // Yeni Alan
+  final Map<String, double> scores;
+  final List<String> behavioralFlags;
   final DateTime createdAt;
 
   Candidate({
     required this.id,
     required this.name,
     required this.position,
+    required this.company,
     required this.scores,
     required this.behavioralFlags,
     required this.createdAt,
@@ -22,6 +24,7 @@ class Candidate {
       'id': id,
       'name': name,
       'position': position,
+      'company': company,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -31,7 +34,8 @@ class Candidate {
       id: map['id'],
       name: map['name'],
       position: map['position'],
-      scores: {}, // Scores and flags are normally loaded separately or as JSON
+      company: map['company'] ?? "Bilinmiyor",
+      scores: {},
       behavioralFlags: [],
       createdAt: DateTime.parse(map['createdAt']),
     );

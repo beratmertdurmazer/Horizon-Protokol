@@ -15,11 +15,12 @@ class PersonaMR {
   final Map<String, List<Map<String, dynamic>>> _interactionTimeline = {};
   final Map<String, Stopwatch> _chapterStopwatches = {};
 
-  Future<void> initSession(String name, String position) async {
+  Future<void> initSession(String name, String position, String company) async {
     currentCandidate = Candidate(
       id: "BC_${DateTime.now().millisecondsSinceEpoch}",
       name: name,
       position: position,
+      company: company,
       scores: {},
       behavioralFlags: [],
       createdAt: DateTime.now(),
@@ -30,7 +31,7 @@ class PersonaMR {
     _chapterStopwatches.clear();
 
     await _dbService.insertCandidate(currentCandidate!);
-    print("PersonaMR: Session initialized for ${currentCandidate!.name}");
+    print("PersonaMR: Session initialized for ${currentCandidate!.name} ($company)");
   }
 
   void startChapterTimer(String chapterId) {

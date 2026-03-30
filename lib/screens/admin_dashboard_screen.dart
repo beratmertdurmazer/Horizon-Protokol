@@ -195,7 +195,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         return ListTile(
           tileColor: isSelected ? AppTheme.neonCyan.withOpacity(0.05) : Colors.transparent,
           title: Text(c.name.toUpperCase(), style: GoogleFonts.rajdhani(color: isSelected ? AppTheme.neonCyan : Colors.white70, fontWeight: FontWeight.bold)),
-          subtitle: Text(c.position, style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 10)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(c.position, style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 10)),
+              Text(c.company, style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.bold)),
+            ],
+          ),
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline, size: 18, color: Colors.white24),
             onPressed: () => _confirmDelete(c),
@@ -498,7 +504,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               Text("ADAY_KODU: ${_selectedCandidate!.id}", style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan, fontSize: 10)),
               Text(_selectedCandidate!.name.toUpperCase(), style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-              Text("ARKETİP: $archetype", style: GoogleFonts.sourceCodePro(color: Colors.white30, fontSize: 10)),
+              Row(
+                children: [
+                  Text("ARKETİP: $archetype", style: GoogleFonts.sourceCodePro(color: Colors.white30, fontSize: 10)),
+                  const SizedBox(width: 20),
+                  Text("ŞİRKET: ${_selectedCandidate!.company}", style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold)),
+                ],
+              ),
             ],
           ),
           if (!isMobile) 

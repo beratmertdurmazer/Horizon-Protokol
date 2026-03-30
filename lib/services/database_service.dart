@@ -33,6 +33,7 @@ class DatabaseService {
         'id': c.id,
         'name': c.name,
         'position': c.position,
+        'company': c.company,
         'scores': c.scores,
         'behavioralFlags': c.behavioralFlags,
         'createdAt': c.createdAt.toIso8601String(),
@@ -58,6 +59,7 @@ class DatabaseService {
           id: m['id'],
           name: m['name'],
           position: m['position'],
+          company: m['company'] ?? "Bilinmiyor",
           scores: Map<String, double>.from(m['scores']),
           behavioralFlags: List<String>.from(m['behavioralFlags']),
           createdAt: DateTime.parse(m['createdAt']),
@@ -107,13 +109,19 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE candidates ADD COLUMN company TEXT DEFAULT "Bilinmiyor"');
+        }
+      },
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE candidates(
             id TEXT PRIMARY KEY,
             name TEXT,
             position TEXT,
+            company TEXT,
             scores TEXT,
             behavioralFlags TEXT,
             createdAt TEXT
@@ -161,6 +169,7 @@ class DatabaseService {
         'id': candidate.id,
         'name': candidate.name,
         'position': candidate.position,
+        'company': candidate.company,
         'scores': candidate.scores,
         'behavioralFlags': candidate.behavioralFlags,
         'createdAt': candidate.createdAt.toIso8601String(),
@@ -188,6 +197,7 @@ class DatabaseService {
           id: old.id,
           name: old.name,
           position: old.position,
+          company: old.company,
           scores: scores,
           behavioralFlags: flags,
           createdAt: old.createdAt,
@@ -385,10 +395,11 @@ class DatabaseService {
     if (kIsWeb) {
       try {
         final response = await supabase.from('candidates').select().order('createdAt', ascending: false);
-        final cloudCandidates = (response as List).map((m) => Candidate(
+        final cloudCandidates = (response as List).map<Candidate>((m) => Candidate(
           id: m['id'],
           name: m['name'],
           position: m['position'],
+          company: m['company'] ?? "Bilinmiyor",
           scores: Map<String, double>.from(m['scores']),
           behavioralFlags: List<String>.from(m['behavioralFlags']),
           createdAt: DateTime.parse(m['createdAt']),
@@ -407,6 +418,7 @@ class DatabaseService {
         id: maps[i]['id'] as String,
         name: maps[i]['name'] as String,
         position: maps[i]['position'] as String,
+        company: maps[i]['company'] as String? ?? "Bilinmiyor",
         scores: Map<String, double>.from(jsonDecode(maps[i]['scores'] as String)),
         behavioralFlags: List<String>.from(jsonDecode(maps[i]['behavioralFlags'] as String)),
         createdAt: DateTime.parse(maps[i]['createdAt'] as String),
@@ -420,6 +432,7 @@ class DatabaseService {
       id: "DEMO-001",
       name: "Örnek Aday (İşbirlikçi)",
       position: "Senior Project Manager",
+      company: "DelphiSonic",
       scores: {}, 
       behavioralFlags: [],
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
@@ -432,6 +445,7 @@ class DatabaseService {
       id: "DEMO-002",
       name: "Aday 002 (Otoriter)",
       position: "Operations lead",
+      company: "Ensight",
       scores: {},
       behavioralFlags: [],
       createdAt: DateTime.now().subtract(const Duration(hours: 5)),
