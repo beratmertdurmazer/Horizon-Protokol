@@ -16,22 +16,31 @@ class PersonaMR {
   final Map<String, Stopwatch> _chapterStopwatches = {};
 
   Future<void> initSession(String name, String position, String company) async {
-    currentCandidate = Candidate(
-      id: "BC_${DateTime.now().millisecondsSinceEpoch}",
-      name: name,
-      position: position,
-      company: company,
-      scores: {},
-      behavioralFlags: [],
-      createdAt: DateTime.now(),
-    );
+    // 1. Önce bu isim ve şirkette bir aday var mı kontrol et
+    final existing = await _dbService.findCandidateByNameAndCompany(name, company);
+    
+    if (existing != null) {
+      currentCandidate = existing;
+      print("PersonaMR: Mevcut adaya bağlanıldı: ${existing.name} ($company)");
+    } else {
+      // 2. Yoksa yeni aday oluştur
+      currentCandidate = Candidate(
+        id: "BC_${DateTime.now().millisecondsSinceEpoch}",
+        name: name,
+        position: position,
+        company: company,
+        scores: {},
+        behavioralFlags: [],
+        createdAt: DateTime.now(),
+      );
+      await _dbService.insertCandidate(currentCandidate!);
+      print("PersonaMR: Yeni aday oluşturuldu: ${currentCandidate!.name} ($company)");
+    }
+    
     decisions.clear();
     _chapterMetrics.clear();
     _interactionTimeline.clear();
     _chapterStopwatches.clear();
-
-    await _dbService.insertCandidate(currentCandidate!);
-    print("PersonaMR: Session initialized for ${currentCandidate!.name} ($company)");
   }
 
   void startChapterTimer(String chapterId) {

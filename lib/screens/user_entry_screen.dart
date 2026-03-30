@@ -91,7 +91,13 @@ class _UserEntryScreenState extends State<UserEntryScreen> with TickerProviderSt
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const TestSelectionScreen()),
+          MaterialPageRoute(
+            builder: (context) => TestSelectionScreen(
+              userName: _nameController.text.trim(),
+              position: _positionController.text.trim(),
+              company: company ?? "BİLİNMİYOR",
+            ),
+          ),
         );
       }
     });

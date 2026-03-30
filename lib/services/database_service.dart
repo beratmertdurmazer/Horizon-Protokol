@@ -157,6 +157,67 @@ class DatabaseService {
     );
   }
 
+  Future<Candidate?> findCandidateByNameAndCompany(String name, String company) async {
+    final cleanName = name.trim();
+    final cleanCompany = company.trim();
+
+    if (kIsWeb) {
+      // 1. Önce local hafızayı kontrol et (Büyük-küçük harf duyarsız)
+      try {
+        final localMatch = _webCandidates.firstWhere(
+          (c) => c.name.trim().toLowerCase() == cleanName.toLowerCase() && 
+                 c.company.trim().toLowerCase() == cleanCompany.toLowerCase(),
+        );
+        return localMatch;
+      } catch (_) {
+        // 2. Localde yoksa Supabase'e sor (ilike = case-insensitive matching)
+        try {
+          final response = await supabase
+              .from('candidates')
+              .select()
+              .ilike('name', cleanName)
+              .ilike('company', cleanCompany)
+              .maybeSingle();
+          
+          if (response != null) {
+            return Candidate(
+              id: response['id'],
+              name: response['name'],
+              position: response['position'],
+              company: response['company'] ?? "Bilinmiyor",
+              scores: Map<String, double>.from(response['scores']),
+              behavioralFlags: List<String>.from(response['behavioralFlags']),
+              createdAt: DateTime.parse(response['createdAt']),
+            );
+          }
+        } catch (e) {
+          debugPrint("Supabase Search Error: $e");
+        }
+      }
+      return null;
+    }
+    
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db!.query(
+      'candidates',
+      where: 'LOWER(name) = ? AND LOWER(company) = ?',
+      whereArgs: [cleanName.toLowerCase(), cleanCompany.toLowerCase()],
+    );
+
+    if (maps.isNotEmpty) {
+      return Candidate(
+        id: maps[0]['id'] as String,
+        name: maps[0]['name'] as String,
+        position: maps[0]['position'] as String,
+        company: maps[0]['company'] as String? ?? "Bilinmiyor",
+        scores: Map<String, double>.from(jsonDecode(maps[0]['scores'] as String)),
+        behavioralFlags: List<String>.from(jsonDecode(maps[0]['behavioralFlags'] as String)),
+        createdAt: DateTime.parse(maps[0]['createdAt'] as String),
+      );
+    }
+    return null;
+  }
+
   // Candidate Operations
   Future<void> insertCandidate(Candidate candidate) async {
     if (kIsWeb) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:horizon_protocol/core/app_theme.dart';
+import 'package:horizon_protocol/screens/user_entry_screen.dart';
 import 'package:horizon_protocol/models/game_models.dart';
 import 'package:horizon_protocol/services/database_service.dart';
 import 'package:horizon_protocol/services/assessment_engine.dart';
@@ -23,6 +24,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<Decision> _selectedDecisions = [];
   List<ChapterMetric> _selectedMetrics = [];
   bool _isLoading = true;
+  bool _isLoadingCandidate = false;
+  String? _selectedProtocol; // Yeni: Seçilen test protokolü
+  
+  final List<Map<String, String>> _availableProtocols = [
+    {
+      'id': 'genesis_demo',
+      'title': 'GENESIS PRIME (DEMO)',
+      'description': '13 BÖLÜMLÜK KLİNİK ANALİZ TESTİ',
+      'tag': 'ALPHA'
+    },
+    {
+      'id': 'genesis_full',
+      'title': 'GENESIS PRIME (FULL CORE)',
+      'description': 'GENİŞLETİLMİŞ KARAR AĞACI VE ÇAPRAZ MATRİS',
+      'tag': 'LOCKED'
+    },
+    {
+      'id': 'neural_matrix',
+      'title': 'NEURAL INTEGRITY MATRIX',
+      'description': 'ZİHİNSEL DAYANIKLILIK VE STABİLİTE ÖLÇÜMÜ',
+      'tag': 'LOCKED'
+    },
+  ];
 
   @override
   void initState() {
@@ -51,8 +75,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _selectCandidate(Candidate c) async {
     setState(() {
+      _isLoadingCandidate = true;
       _selectedCandidate = c;
-      _isLoading = true;
+      _selectedProtocol = null; // Aday değişince protokol seçimini sıfırla
     });
     
     try {
@@ -64,7 +89,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _selectedMetrics = metrics..sort((a, b) => a.timestamp.compareTo(b.timestamp));
       });
     } finally {
-      setState(() => _isLoading = false);
+      setState(() => _isLoadingCandidate = false);
     }
   }
 
@@ -83,21 +108,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ) : IconButton(
           icon: const Icon(Icons.arrow_back, color: AppTheme.neonCyan),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const UserEntryScreen()),
+              (route) => false,
+            );
+          },
         ),
         title: Text(
           "HORIZON PROTOKOLÜ // ANALİZ_MERKEZİ",
           style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontWeight: FontWeight.bold, fontSize: isMobile ? 12 : 16, letterSpacing: 1),
         ),
         actions: [
-          if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white70, size: 20),
-              onPressed: () => Navigator.pop(context),
-            ),
+          // 🚀 DAHA BELİRGİN ÇIKIŞ BUTONU
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const UserEntryScreen()),
+                (route) => false,
+              );
+            },
+            icon: const Icon(Icons.logout_outlined, color: Colors.white70, size: 16),
+            label: Text("ÇIKIŞ", style: GoogleFonts.rajdhani(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
+          ),
+          const SizedBox(width: 5),
           IconButton(
             tooltip: "Tüm Verileri Temizle",
-            icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 20),
+            icon: Icon(Icons.delete_sweep_outlined, color: Colors.redAccent.withOpacity(0.5), size: 18),
             onPressed: () => _confirmClearAll(),
           ),
           IconButton(
@@ -135,21 +172,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 
                 Expanded(
                   child: _selectedCandidate == null 
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.radar_outlined, color: AppTheme.neonCyan.withOpacity(0.05), size: 100),
-                            const SizedBox(height: 20),
-                            Text("SİSTEM BEKLEMEDE // ANALİZ İÇİN BİR ADAY SEÇİNİZ", 
-                              style: GoogleFonts.sourceCodePro(color: Colors.white24, fontSize: 13, letterSpacing: 2)),
-                            const SizedBox(height: 10),
-                            Text("PROTOKOL_HAZIR: VERİ OKUMA İZNİ BEKLENİYOR",
-                              style: GoogleFonts.sourceCodePro(color: Colors.white12, fontSize: 9)),
-                          ],
-                        ),
-                      )
-                    : _buildAnalyticsDashboard(isMobile),
+                    ? Center(child: Text("BİR ADAY SEÇİNİZ", style: GoogleFonts.sourceCodePro(color: Colors.white12, fontSize: 18, letterSpacing: 2)))
+                    : (_selectedProtocol == null 
+                        ? _buildProtocolSelectionView(isMobile) 
+                        : _buildAnalyticsDashboard(isMobile)),
                 ),
               ],
             ),
@@ -287,6 +313,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ═══ GERİ DÖN NAVİGASYONU ═══
+          TextButton.icon(
+            onPressed: () => setState(() => _selectedProtocol = null),
+            icon: const Icon(Icons.arrow_back, color: AppTheme.neonCyan, size: 16),
+            label: Text("PROTOKOLLERE DÖN", 
+              style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontWeight: FontWeight.bold, letterSpacing: 2)),
+          ),
+          const SizedBox(height: 20),
+          
           _buildHeader(isMobile, scores, archetype),
           const SizedBox(height: 25),
           
@@ -1872,5 +1907,136 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (flag.contains('Akut Karar Paralizisi')) return "Zaman baskısı ve bilgi yoğunluğu altında 'Donma' (Freeze) tepkisi veren; kriz anlarında sorumluluk almaktan kaçınan profil.";
 
     return "Bilimsel telemetriye dayalı davranışsal gözlem saptanmıştır.";
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PROTOKOL SEÇİM VE DETAY GÖRÜNÜMLERİ
+  // ══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildProtocolSelectionView(bool isMobile) {
+    if (_selectedCandidate == null) return const SizedBox();
+    final isGenesisCompleted = _selectedMetrics.isNotEmpty;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(isMobile ? 20 : 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetailHeader(isMobile),
+          const SizedBox(height: 50),
+          Text(
+            "TANILANMIŞ TEST PROTOKOLLERİ // ${isGenesisCompleted ? 'SİSTEM VERİSİ MEVCUT' : 'BEKLEYEN İŞLEM'}",
+            style: GoogleFonts.sourceCodePro(
+              color: AppTheme.neonCyan.withOpacity(0.5),
+              fontSize: 10,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 30),
+          
+          Wrap(
+            spacing: 20,
+            runSpacing: 20,
+            children: _availableProtocols.map((p) {
+              final isLocked = p['tag'] == 'LOCKED';
+              final isThisGenesis = p['id'] == 'genesis_demo';
+              final canView = isThisGenesis && isGenesisCompleted;
+
+              return _buildAdminProtocolCard(
+                isMobile: isMobile,
+                title: p['title']!,
+                desc: p['description']!,
+                status: isLocked ? "ERİŞİM YOK" : (canView ? "TAMAMLANDI" : "YAPILMADI"),
+                canView: canView,
+                onView: () => setState(() => _selectedProtocol = p['id']),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailHeader(bool isMobile) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 30,
+          backgroundColor: AppTheme.neonCyan.withOpacity(0.1),
+          child: Text(_selectedCandidate!.name[0].toUpperCase(), 
+            style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 24, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_selectedCandidate!.name.toUpperCase(), 
+                style: GoogleFonts.rajdhani(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              Text("${_selectedCandidate!.position} // ${_selectedCandidate!.company}".toUpperCase(), 
+                style: GoogleFonts.sourceCodePro(color: AppTheme.neonCyan.withOpacity(0.7), fontSize: 11)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdminProtocolCard({
+    required bool isMobile,
+    required String title,
+    required String desc,
+    required String status,
+    required bool canView,
+    required VoidCallback onView,
+  }) {
+    final statusColor = status == "TAMAMLANDI" ? Colors.greenAccent : (status == "YAPILMADI" ? Colors.orangeAccent : Colors.white10);
+
+    return Container(
+      width: isMobile ? double.infinity : 350,
+      padding: const EdgeInsets.all(25),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        border: Border.all(color: canView ? AppTheme.neonCyan.withOpacity(0.3) : Colors.white10),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(child: Text(title, style: GoogleFonts.rajdhani(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  border: Border.all(color: statusColor.withOpacity(0.3)),
+                ),
+                child: Text(status, style: GoogleFonts.sourceCodePro(color: statusColor, fontSize: 8, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Text(desc, style: GoogleFonts.inter(color: Colors.white30, fontSize: 12, height: 1.4)),
+          const SizedBox(height: 25),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: canView ? onView : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: canView ? AppTheme.neonCyan.withOpacity(0.1) : Colors.transparent,
+                side: BorderSide(color: canView ? AppTheme.neonCyan : Colors.white10),
+                disabledBackgroundColor: Colors.transparent,
+                disabledForegroundColor: Colors.white12,
+              ),
+              child: Text(canView ? "ANALİZİ GÖR" : "VERİ YOK", 
+                style: GoogleFonts.rajdhani(color: canView ? AppTheme.neonCyan : Colors.white12, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
