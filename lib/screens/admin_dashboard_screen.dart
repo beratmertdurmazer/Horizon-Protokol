@@ -6,6 +6,7 @@ import 'package:horizon_protocol/screens/user_entry_screen.dart';
 import 'package:horizon_protocol/models/game_models.dart';
 import 'package:horizon_protocol/services/database_service.dart';
 import 'package:horizon_protocol/services/assessment_engine.dart';
+import 'package:flutter/services.dart'; // 📋 Kopyalama Desteği
 import '../utils/string_extensions.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -563,9 +564,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ],
             ),
           ),
-          if (!isMobile) 
-            Text("${(scores['section1_adaptability'] ?? 0).toInt()}%", 
-              style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 28, fontWeight: FontWeight.bold)),
+          if (!isMobile) ...[
+             Text("${(scores['section1_adaptability'] ?? 0).toInt()}%", 
+                style: GoogleFonts.rajdhani(color: AppTheme.neonCyan, fontSize: 28, fontWeight: FontWeight.bold)),
+             const SizedBox(width: 20),
+          ],
         ],
       ),
     );

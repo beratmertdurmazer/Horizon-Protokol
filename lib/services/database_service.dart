@@ -34,6 +34,7 @@ class DatabaseService {
         'name': c.name,
         'position': c.position,
         'company': c.company,
+        'share_token': c.shareToken,
         'scores': c.scores,
         'behavioralFlags': c.behavioralFlags,
         'createdAt': c.createdAt.toIso8601String(),
@@ -55,15 +56,20 @@ class DatabaseService {
       final data = web.window.localStorage.getItem('horizon_candidates');
       if (data != null) {
         final List<dynamic> list = jsonDecode(data);
-        _webCandidates = list.map((m) => Candidate(
-          id: m['id'],
-          name: m['name'],
-          position: m['position'],
-          company: m['company'] ?? "Bilinmiyor",
-          scores: Map<String, double>.from(m['scores']),
-          behavioralFlags: List<String>.from(m['behavioralFlags']),
-          createdAt: DateTime.parse(m['createdAt']),
-        )).toList();
+        debugPrint("LOCAL_STORAGE: Found ${list.length} candidates in localStorage.");
+        _webCandidates = list.map((m) {
+          debugPrint("LOCAL_STORAGE: Loading candidate ID: ${m['id']}, ShareToken: ${m['share_token']}");
+          return Candidate(
+            id: m['id'],
+            name: m['name'],
+            position: m['position'],
+            company: m['company'] ?? "Bilinmiyor",
+            shareToken: m['share_token'],
+            scores: Map<String, double>.from(m['scores'] ?? {}),
+            behavioralFlags: List<String>.from(m['behavioralFlags'] ?? []),
+            createdAt: DateTime.parse(m['createdAt']),
+          );
+        }).toList();
       }
 
       final decisionsData = web.window.localStorage.getItem('horizon_decisions');
@@ -283,6 +289,67 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<Candidate?> getCandidateByShareToken(String token) async {
+    final cleanToken = token.trim();
+    print(">>> DATABASE_FETCH: Searching for '$cleanToken'");
+    print(">>> DEBUG: _webCandidates list size: ${_webCandidates.length}");
+
+    if (kIsWeb) {
+      final localCandidate = _webCandidates.cast<Candidate?>().firstWhere(
+        (c) => c?.shareToken == cleanToken || c?.id == cleanToken,
+        orElse: () => null,
+      );
+      if (localCandidate != null) {
+        print(">>> DATABASE_FETCH: FOUND LOCALLY (Mock/Web)");
+        return localCandidate;
+      }
+    }
+
+    try {
+      final uuidRegex = RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', caseSensitive: false);
+      final isUuid = uuidRegex.hasMatch(cleanToken);
+
+      dynamic response;
+      
+      // 1. share_token ile dene (Sadece UUID ise veya kolon text ise)
+      // Çoğu durumda share_token text kolonu olarak açılır ama hata alıyorsak korumaya alalım.
+      try {
+        // Eğer token UUID DEĞİLSE ve veritabanı kolonu UUID ise 'eq' hata verecektir.
+        // O yüzden isUuid değilse SUPABASE UUID kolonuna SORGULATMAYALIM.
+        response = await supabase
+            .from('candidates')
+            .select()
+            .eq('share_token', cleanToken)
+            .maybeSingle();
+      } catch (e) {
+        print(">>> DATABASE_FETCH_ERROR: share_token skip (mismatch): $e");
+      }
+
+      // 2. id ile dene (SADECE geçerli bir UUID ise, yoksa 'DEMO-002' gibi şeylerde hata fırlatır)
+      if (response == null && isUuid) {
+        try {
+          response = await supabase
+              .from('candidates')
+              .select()
+              .eq('id', cleanToken)
+              .maybeSingle();
+        } catch (e) {
+          print(">>> DATABASE_FETCH_ERROR: ID skip (mismatch): $e");
+        }
+      }
+
+      if (response != null) {
+        print(">>> DATABASE_FETCH: FOUND IN CLOUD");
+        return Candidate.fromMap(response);
+      }
+    } catch (e) {
+      print(">>> DATABASE_FETCH_ERROR: Total failure: $e");
+    }
+    
+    print(">>> DATABASE_FETCH: CANDIDATE NOT FOUND ANYWHERE");
+    return null;
   }
 
   Future<void> deleteCandidate(String id) async {

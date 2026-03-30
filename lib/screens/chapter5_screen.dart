@@ -22,7 +22,7 @@ class _Chapter5ScreenState extends State<Chapter5Screen> with SingleTickerProvid
   bool _isTransitioning = false;
   Timer? _countdownTimer;
   Timer? _heartbeatTimer;
-  int _secondsRemaining = 45;
+  int _secondsRemaining = 15;
   int _failedAttempts = 0;
   int? _readingTime;
   bool _usedDecoy = false;

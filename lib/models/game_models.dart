@@ -5,6 +5,7 @@ class Candidate {
   final String name;
   final String position;
   final String company; // Yeni Alan
+  final String? shareToken; // 🔗 Paylaşım için Token
   final Map<String, double> scores;
   final List<String> behavioralFlags;
   final DateTime createdAt;
@@ -14,6 +15,7 @@ class Candidate {
     required this.name,
     required this.position,
     required this.company,
+    this.shareToken,
     required this.scores,
     required this.behavioralFlags,
     required this.createdAt,
@@ -25,6 +27,7 @@ class Candidate {
       'name': name,
       'position': position,
       'company': company,
+      'share_token': shareToken,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -35,6 +38,7 @@ class Candidate {
       name: map['name'],
       position: map['position'],
       company: map['company'] ?? "Bilinmiyor",
+      shareToken: map['share_token'],
       scores: {},
       behavioralFlags: [],
       createdAt: DateTime.parse(map['createdAt']),

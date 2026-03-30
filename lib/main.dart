@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:horizon_protocol/core/app_theme.dart';
 import 'package:horizon_protocol/screens/splash_screen.dart';
 import 'package:horizon_protocol/widgets/terminal_overlay.dart';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
